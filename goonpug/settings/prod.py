@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) 2013 Peter Rowlands
+# All rights reserved.
 """Production settings and globals."""
 
 

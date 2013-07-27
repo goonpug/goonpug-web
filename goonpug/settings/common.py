@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) 2013 Peter Rowlands
+# All rights reserved.
 """Common settings and globals."""
 
 
@@ -36,7 +39,7 @@ TEMPLATE_DEBUG = DEBUG
 ########## MANAGER CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#admins
 ADMINS = (
-    ('Your Name', 'your_email@example.com'),
+    ('Peter Rowlands', 'peter@pmrowla.com'),
 )
 
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#managers
@@ -61,7 +64,7 @@ DATABASES = {
 
 ########## GENERAL CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#time-zone
-TIME_ZONE = 'America/Los_Angeles'
+TIME_ZONE = 'America/Chicago'
 
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#language-code
 LANGUAGE_CODE = 'en-us'
@@ -202,6 +205,7 @@ THIRD_PARTY_APPS = (
 )
 
 LOCAL_APPS = (
+    'apps.core',
 )
 
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
