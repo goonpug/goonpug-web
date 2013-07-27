@@ -3,7 +3,9 @@
 # All rights reserved.
 
 from django.db import models
-import django.contrib.auth.models
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, \
+    UserManager
+from django.utils import timezone
 
 
 class Match(models.Model):
@@ -102,12 +104,30 @@ class MatchMapScore(models.Model):
     score2_half2 = models.IntegerField()
 
 
-class Player(models.Model):
+class Player(AbstractBaseUser, PermissionsMixin):
 
-    user = models.OneToOneField(django.contrib.auth.models.User)
-    steam_id = models.BigIntegerField(unique=True)
-    banned = models.BooleanField()
-    reputation = models.IntegerField()
+    # django auth fields
+    username = models.CharField(max_length=64)
+    email = models.EmailField(blank=True)
+    is_staff = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    date_joined = models.DateTimeField(default=timezone.now)
+
+    objects = UserManager()
+
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = ['steamid']
+
+    # steam community fields
+    steamid = models.BigIntegerField(unique=True)
+    profileurl = models.CharField(max_length=256)
+    avatar = models.CharField(max_length=256)
+    avatarmedium = models.CharField(max_length=256)
+    avatarfull = models.CharField(max_length=256)
+
+    # goonpug specific fields
+    is_banned = models.BooleanField(default=False)
+    reputation = models.IntegerField(default=0)
     rating = models.FloatField(default=25.0)
     rating_variance = models.FloatField(default=8.333)
 
@@ -258,7 +278,7 @@ class Season(models.Model):
     end = models.DateField()
     link = models.CharField(max_length=128)
     logo = models.CharField(max_length=256)
-    active = models.BooleanField()
+    is_active = models.BooleanField()
 
 
 class Server(models.Model):

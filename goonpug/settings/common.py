@@ -202,6 +202,12 @@ THIRD_PARTY_APPS = (
 
     # Asynchronous task queue:
     'djcelery',
+
+    # Site tree navigation
+    'sitetree',
+
+    # Social auth
+    'social_auth',
 )
 
 LOCAL_APPS = (
@@ -274,3 +280,27 @@ COMPRESS_JS_FILTERS = [
     'compressor.filters.template.TemplateFilter',
 ]
 ########## END COMPRESSION CONFIGURATION
+
+
+########## SOCIAL AUTH CONFIGURATION
+AUTHENTICATION_BACKENDS = (
+    'social_auth.backends.steam.SteamBackend',
+    'django.contrib.auth.backends.ModelBackend',
+)
+
+SOCIAL_AUTH_USER_MODEL = 'core.Player'
+
+STEAM_API_KEY = 'BE824F03731D9D1ADA4136E291647E33'
+
+LOGIN_URL          = '/login/'
+LOGIN_REDIRECT_URL = '/'
+
+SOCIAL_AUTH_PIPELINE = (
+    'social_auth.backends.pipeline.social.social_auth_user',
+    'social_auth.backends.pipeline.user.get_username',
+    'apps.core.pipeline.create_user',
+    'social_auth.backends.pipeline.social.associate_user',
+    'social_auth.backends.pipeline.social.load_extra_data',
+    'apps.core.pipeline.update_user_details',
+)
+########## END SOCIAL AUTH CONFIGURATION
