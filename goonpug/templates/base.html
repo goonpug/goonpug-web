@@ -4,9 +4,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>
-      {% block title %}GoonPUG{% endblock %}
-    </title>
+    <title>{% block title %}GoonPUG{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="">
     <meta name="author" content="">
@@ -14,16 +12,8 @@
     <!-- Le styles -->
     {% compress css %}
     <link href="{{ STATIC_URL }}css/bootstrap.css" rel="stylesheet">
+    <link href="{{ STATIC_URL }}css/goonpug.css" rel="stylesheet">
     {% endcompress %}
-    <style type="text/css">
-      body {
-        padding-top: 60px;
-        padding-bottom: 40px;
-      }
-      .sidebar-nav {
-        padding: 9px 0;
-      }
-    </style>
 
     <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
     <!--[if lt IE 9]>
@@ -39,53 +29,59 @@
   </head>
 
   <body>
-    <div class="navbar navbar-inverse navbar-fixed-top">
-      <div class="navbar-inner">
-        <div class="container">
-          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </a>
-          <a class="brand" href="/">GoonPUG</a>
-          <div class="nav-collapse collapse">
-            <p class="navbar-text pull-right">
-              {% if user.is_authenticated %}
-              <img src="{{ user.avatar }}" alt="steam avatar" /><a href="#" class="navbar-link">{{ user.username }}</a> (<a href="{% url 'django.contrib.auth.views.logout' %}">Log out</a>)
-              {% else %}
-              <a href="{% url 'socialauth_begin' 'steam' %}"><img src="http://cdn.steamcommunity.com/public/images/signinthroughsteam/sits_small.png" alt="Sign in through Steam" /></a>
-              {% endif %}
-            </p>
-            {% sitetree_menu from 'main-nav' include 'trunk' %}
-          </div><!--/.nav-collapse -->
-        </div>
-      </div>
-    </div>
-
     <div class="container">
-    {% if messages %}
-    {% for message in messages %}
-      <div class="alert{% if message.tags %} alert-{{ message.tags }}{% endif %}">
-        <a class="close" data-dismiss="alert" href="#">&times;</a>{{ message }}
-      </div>
-    {% endfor %}
-    {% endif %}
 
-    {% block body %}
-    {% endblock %}
+      <div class="masthead">
+        <h3 class="text-muted">GoonPUG</h3>
 
-    <hr>
+        <div class="navbar">
+          <div class="container">
+            <!-- .navbar-toggle is used as the toggle for collapsed navbar content -->
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-responsive-collapse">
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </button>
 
-    <footer>
-      <p class="pagination-centered">Copyright &copy; 2013 Peter Rowlands | Powered by Steam</p>
-      <form class="pagination-centered" action="https://www.paypal.com/cgi-bin/webscr" method="post">
-        <input type="hidden" name="cmd" value="_s-xclick">
-        <input type="hidden" name="encrypted" value="-----BEGIN PKCS7-----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-----END PKCS7-----
-        ">
-        <input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
-        <img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1">
-      </form>
-    </footer>
+            <div class="nav-collapse collapse navbar-responsive-collapse">
+              {% if user.is_authenticated %}
+              {% sitetree_menu from 'user-tree' include 'trunk' template 'tree/menu_bootstrap_right.html' %}
+              {% else %}
+              <button type="button" class="btn btn-link navbar-btn pull-right">
+                <a href="{% url 'socialauth_begin' 'steam' %}"><img src="http://cdn.steamcommunity.com/public/images/signinthroughsteam/sits_small.png" alt="Sign in through Steam" /></a>
+              </button>
+              {% endif %}
+              {% sitetree_menu from 'main-nav' include 'trunk' template 'tree/menu_bootstrap.html' %}
+            </div><!--/.nav-collapse -->
+          </div><!--/.container -->
+        </div><!--/.navbar -->
+      </div><!--/.masthead -->
+
+      <div class="body-content">
+        {% if messages %}
+        {% for message in messages %}
+          <div class="alert{% if message.tags %} alert-{{ message.tags }}{% endif %}">
+            <a class="close" data-dismiss="alert" href="#">&times;</a>{{ message }}
+          </div>
+        {% endfor %}
+        {% endif %}
+
+        {% block body %}
+        {% endblock %}
+      </div><!--/.body-content -->
+
+      <div class="footer">
+        <p class="text-center">Copyright &copy; 2013 Peter Rowlands | Powered by Steam</p>
+        <form class="form-inline text-center" action="https://www.paypal.com/cgi-bin/webscr" method="post">
+          <input type="hidden" name="cmd" value="_s-xclick">
+          <input type="hidden" name="encrypted" value="-----BEGIN PKCS7-----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-----END PKCS7-----
+          ">
+          <input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
+          <img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1">
+            </div>
+          </div>
+        </form>
+      </div><!--/.footer -->
 
     </div><!--/.container-->
 
@@ -95,11 +91,12 @@
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
     {% compress js %}
     <script src="{{ STATIC_URL }}js/bootstrap.js"></script>
-    {% endcompress %}
+
     <script type="text/javascript">
         $(document).ready(function () {
             $("[rel=tooltip]").tooltip();
         });
     </script>
+    {% endcompress %}
   </body>
 </html>

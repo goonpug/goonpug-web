@@ -12,7 +12,12 @@ urlpatterns = patterns('',
     # Admin panel and documentation:
     url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
     url(r'^admin/', include(admin.site.urls)),
+
+    # Auth
     url(r'^logout/', 'django.contrib.auth.views.logout'),
     url(r'^', include('social_auth.urls')),
-    url(r'^', TemplateView.as_view(template_name='index.html')),
+    url(r'^', include('apps.core.urls')),
+
+    # generic
+    url(r'^$', TemplateView.as_view(template_name='index.html')),
 )

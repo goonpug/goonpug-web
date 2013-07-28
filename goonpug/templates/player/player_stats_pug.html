@@ -1,0 +1,26 @@
+{% extends 'player/base_player.html' %}
+{% load render_table from django_tables2 %}
+
+{% block tabcontent %}
+<div class="panel">
+  <div class="panel-heading">
+    Showing PUG stats for the period
+    <div class="btn-group">
+      <button type="button" class="btn btn-primary btn-small dropdown-toggle" data-toggle="dropdown">
+        {{ period }} <span class="caret"></span>
+      </button>
+      <ul class="dropdown-menu">
+        {% for item in periods %}
+        {% if item %}
+        <li><a href="#">{{ item }}</a></li>
+        {% else %}
+        <li class="divider"></li>
+        {% endif %}
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  {% render_table stats_table %}
+</div><!--/.panel -->
+{% endblock %}

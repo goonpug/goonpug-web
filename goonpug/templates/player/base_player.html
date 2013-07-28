@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% load sitetree %}
+
+{% block title %}{{ player.username }}{% endblock %}
+
+{% block body %}
+
+<h2>Profile for {{ player.username }}</h2>
+<div class="container">
+  <div class="row">
+    <div class="col-lg-2 col-sm-4">
+      <img src="{{ player.avatarfull }}" alt="{{ player.username }}'s avatar" class="img-rounded" />
+    </div>
+
+    <div class="col-lg-4 col-sm-8">
+      <table class="table table-condensed">
+        <thead>
+          <tr>
+            <td colspan="2" class="text-center">
+              <div class="btn-group">
+                <a href="{{ user.profileurl }}" class="btn btn-default btn-small">View Steam profile</a>
+                <a href="steam://friends/add/{{ user.steamid }}" class="btn btn-default btn-small">Add friend</a>
+                <a href="steam://friends/message/{{ user.steamid }}" class="btn btn-default btn-small">Send message</a>
+              </div>
+          </td>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th>Ban status</th>
+              {% if player.is_banned %}
+                <td class="danger">Banned until</td>
+              {% else %}
+                <td class="success">No bans on record</td>
+              {% endif %}
+          </tr>
+          <tr>
+            <th>GP Skill</th>
+            <td>{{ player.rating }}</td>
+          </tr>
+          <tr>
+            <th>Last seen</th>
+            <td>Never</td>
+          </tr>
+          <tr>
+            <th>Steam ID</th>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div><!--/.col-lg-4 -->
+
+    <div class="col-lg-3 col-sm-6">
+      <table class="table table-condensed">
+        <thead>
+          <tr>
+            <th>Dominates</th>
+            <th>K</th>
+            <th>A</th>
+            <th>D</th>
+          </tr>
+          <tbody>
+            {% if dominates %}
+              {% for name, k, a, d in dominates %}
+              <tr>
+                <td>{{ name }}</td>
+                <td>{{ k }}</td>
+                <td>{{ a }}</td>
+                <td>{{ d }}</td>
+              <tr>
+              {% endfor %}
+            {% else %}
+              <tr><td colspan="4" /><tr>
+            {% endif %}
+        </tbody>
+        </thead>
+      </table>
+    </div><!--/.col-lg-3 -->
+
+    <div class="col-lg-3 col-sm-6">
+      <table class="table table-condensed">
+        <thead>
+          <tr>
+            <th>Dominated by</th>
+            <th>K</th>
+            <th>A</th>
+            <th>D</th>
+          </tr>
+          <tbody>
+            {% if dominated_by %}
+              {% for name, k, a, d in dominated_by %}
+              <tr>
+                <td>{{ name }}</td>
+                <td>{{ k }}</td>
+                <td>{{ a }}</td>
+                <td>{{ d }}</td>
+              <tr>
+              {% endfor %}
+            {% else %}
+              <tr><td colspan="4" /><tr>
+            {% endif %}
+        </tbody>
+        </thead>
+      </table>
+    </div><!--/.col-lg-3 -->
+
+  </div><!--/.row -->
+
+  <div class="row">
+    <div class="col-12">
+      {% sitetree_menu from 'player-tabs' include 'trunk' template 'tree/menu_tabs.html' %}
+      {% block tabcontent %}
+      {% endblock %}
+    </div><!--/.col-12 -->
+  </div><!--/.row -->
+
+</div><!--/.container -->
+
+{% endblock %}

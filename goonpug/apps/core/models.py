@@ -78,12 +78,17 @@ class Match(models.Model):
 
 
 class MatchMap(models.Model):
+
     match = models.ForeignKey('Match')
     map_name = models.CharField(max_length=64)
     score_1 = models.IntegerField()
     score_2 = models.IntegerField()
     current_period = models.IntegerField()
-    gotv_demo_file = models.CharField(max_length=256)
+    zip_url = models.CharField(max_length=256)
+    sha1sum = models.CharField(max_length=40, unique=True)
+    has_demo = models.BooleanField(default=False)
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
 
 
 class MatchMapScore(models.Model):
@@ -131,6 +136,12 @@ class Player(AbstractBaseUser, PermissionsMixin):
     rating = models.FloatField(default=25.0)
     rating_variance = models.FloatField(default=8.333)
 
+    def get_full_name(self):
+        return self.username
+
+    def get_short_name(self):
+        return self.username
+
 
 class PlayerBan(models.Model):
 
@@ -139,6 +150,15 @@ class PlayerBan(models.Model):
     end = models.DateField()
     reason = models.CharField(max_length=256)
     link = models.CharField(max_length=256)
+
+
+class PlayerIp(models.Model):
+
+    player = models.ForeignKey('Player')
+    ip = models.CharField(max_length=16)
+
+    class Meta:
+        unique_together = (('player', 'ip'),)
 
 
 class PlayerKill(models.Model):
@@ -162,7 +182,6 @@ class PlayerMatch(models.Model):
     match_map = models.ForeignKey('MatchMap')
     player = models.ForeignKey('Player')
     team = models.IntegerField(choices=Match.TEAM, default=Match.TEAM_OTHER)
-    ip = models.CharField(max_length=16)
     first_side = models.IntegerField(choices=Match.SIDE)
     current_side = models.IntegerField(choices=Match.SIDE)
     nickname = models.CharField(max_length=256)
@@ -186,19 +205,33 @@ class PlayerMatch(models.Model):
     k5 = models.IntegerField()
     adr = models.FloatField()
     rws = models.FloatField()
+    rounds_won = models.IntegerField()
+    rounds_lost = models.IntegerField()
+    rounds_tied = models.IntegerField()
+
+
+class PlayerMatchWeapons(models.Model):
+
+    match = models.ForeignKey('Match')
+    match_map = models.ForeignKey('MatchMap')
+    player = models.ForeignKey('Player')
+    weapon = models.CharField(max_length=64)
+    headshots = models.IntegerField()
+    hits = models.IntegerField()
+    damage = models.IntegerField()
+    kills = models.IntegerField()
+    deaths = models.IntegerField()
 
 
 class PlayerRound(models.Model):
 
     round = models.ForeignKey('Round')
     player = models.ForeignKey('Player')
-    ip = models.CharField(max_length=16)
     first_side = models.IntegerField(choices=Match.SIDE)
     current_side = models.IntegerField(choices=Match.SIDE)
     kills = models.IntegerField()
     assists = models.IntegerField()
     deaths = models.IntegerField()
-    hsp = models.FloatField()
     defuses = models.IntegerField()
     plants = models.IntegerField()
     tks = models.IntegerField()
@@ -212,7 +245,7 @@ class PlayerRound(models.Model):
     k3 = models.IntegerField()
     k4 = models.IntegerField()
     k5 = models.IntegerField()
-    adr = models.FloatField()
+    damage = models.IntegerField()
     rws = models.FloatField()
 
 
@@ -224,8 +257,8 @@ class PlayerSeason(models.Model):
     assists = models.IntegerField()
     deaths = models.IntegerField()
     score = models.IntegerField()
-    hsp = models.FloatField()
-    defuses = models.IntegerField()
+    hsp = models.FloatField('headshot percentage')
+    defuses = models.IntegerField('bomb defusals')
     plants = models.IntegerField()
     tks = models.IntegerField()
     clutch_v1 = models.IntegerField()
@@ -240,6 +273,24 @@ class PlayerSeason(models.Model):
     k5 = models.IntegerField()
     adr = models.FloatField()
     rws = models.FloatField()
+    rounds_won = models.IntegerField()
+    rounds_lost = models.IntegerField()
+    rounds_tied = models.IntegerField()
+    matches_won = models.IntegerField()
+    matches_lost = models.IntegerField()
+    matches_tied = models.IntegerField()
+
+
+class PlayerSeasonWeapons(models.Model):
+
+    player = models.ForeignKey('Player')
+    season = models.ForeignKey('Season')
+    weapon = models.CharField(max_length=64)
+    headshots = models.IntegerField()
+    hits = models.IntegerField()
+    damage = models.IntegerField()
+    kills = models.IntegerField()
+    deaths = models.IntegerField()
 
 
 class Round(models.Model):
@@ -289,6 +340,9 @@ class Server(models.Model):
     gotv_ip = models.CharField(max_length=16, blank=True)
     gotv_port = models.IntegerField(default=27020)
     rcon = models.CharField(max_length=64, blank=True)
+
+    class Meta:
+        unique_together = (('ip', 'port'),)
 
 
 class Team(models.Model):

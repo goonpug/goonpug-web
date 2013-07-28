@@ -205,17 +205,20 @@ THIRD_PARTY_APPS = (
 
     # Site tree navigation
     'sitetree',
-
-    # Social auth
-    'social_auth',
 )
 
 LOCAL_APPS = (
     'apps.core',
 )
 
+THIRD_PARTY_APPS2 = (
+    # Social auth has to be loaded after goonpug.apps.core since it usese
+    # goonpug.appscore.Player as the auth user model
+    'social_auth',
+)
+
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
-INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS + THIRD_PARTY_APPS2
 ########## END APP CONFIGURATION
 
 

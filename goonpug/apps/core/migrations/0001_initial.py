@@ -7,6 +7,10 @@ from django.db import models
 
 class Migration(SchemaMigration):
 
+    needed_by = (
+        ('social_auth', '0001_initial'),
+    )
+
     def forwards(self, orm):
         # Adding model 'Match'
         db.create_table(u'core_match', (
@@ -38,7 +42,11 @@ class Migration(SchemaMigration):
             ('score_1', self.gf('django.db.models.fields.IntegerField')()),
             ('score_2', self.gf('django.db.models.fields.IntegerField')()),
             ('current_period', self.gf('django.db.models.fields.IntegerField')()),
-            ('gotv_demo_file', self.gf('django.db.models.fields.CharField')(max_length=256)),
+            ('zip_url', self.gf('django.db.models.fields.CharField')(max_length=256)),
+            ('sha1sum', self.gf('django.db.models.fields.CharField')(unique=True, max_length=40)),
+            ('has_demo', self.gf('django.db.models.fields.BooleanField')(default=False)),
+            ('start_time', self.gf('django.db.models.fields.DateTimeField')()),
+            ('end_time', self.gf('django.db.models.fields.DateTimeField')()),
         ))
         db.send_create_signal(u'core', ['MatchMap'])
 
@@ -65,13 +73,13 @@ class Migration(SchemaMigration):
             ('is_staff', self.gf('django.db.models.fields.BooleanField')(default=False)),
             ('is_active', self.gf('django.db.models.fields.BooleanField')(default=True)),
             ('date_joined', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
-            ('steamid', self.gf('django.db.models.fields.BigIntegerField')()),
+            ('steamid', self.gf('django.db.models.fields.BigIntegerField')(unique=True)),
             ('profileurl', self.gf('django.db.models.fields.CharField')(max_length=256)),
             ('avatar', self.gf('django.db.models.fields.CharField')(max_length=256)),
             ('avatarmedium', self.gf('django.db.models.fields.CharField')(max_length=256)),
             ('avatarfull', self.gf('django.db.models.fields.CharField')(max_length=256)),
             ('is_banned', self.gf('django.db.models.fields.BooleanField')(default=False)),
-            ('reputation', self.gf('django.db.models.fields.IntegerField')()),
+            ('reputation', self.gf('django.db.models.fields.IntegerField')(default=0)),
             ('rating', self.gf('django.db.models.fields.FloatField')(default=25.0)),
             ('rating_variance', self.gf('django.db.models.fields.FloatField')(default=8.333)),
         ))
@@ -106,6 +114,17 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal(u'core', ['PlayerBan'])
 
+        # Adding model 'PlayerIp'
+        db.create_table(u'core_playerip', (
+            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('player', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.Player'])),
+            ('ip', self.gf('django.db.models.fields.CharField')(max_length=16)),
+        ))
+        db.send_create_signal(u'core', ['PlayerIp'])
+
+        # Adding unique constraint on 'PlayerIp', fields ['player', 'ip']
+        db.create_unique(u'core_playerip', ['player_id', 'ip'])
+
         # Adding model 'PlayerKill'
         db.create_table(u'core_playerkill', (
             (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
@@ -128,7 +147,6 @@ class Migration(SchemaMigration):
             ('match_map', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.MatchMap'])),
             ('player', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.Player'])),
             ('team', self.gf('django.db.models.fields.IntegerField')(default=0)),
-            ('ip', self.gf('django.db.models.fields.CharField')(max_length=16)),
             ('first_side', self.gf('django.db.models.fields.IntegerField')()),
             ('current_side', self.gf('django.db.models.fields.IntegerField')()),
             ('nickname', self.gf('django.db.models.fields.CharField')(max_length=256)),
@@ -152,21 +170,37 @@ class Migration(SchemaMigration):
             ('k5', self.gf('django.db.models.fields.IntegerField')()),
             ('adr', self.gf('django.db.models.fields.FloatField')()),
             ('rws', self.gf('django.db.models.fields.FloatField')()),
+            ('rounds_won', self.gf('django.db.models.fields.IntegerField')()),
+            ('rounds_lost', self.gf('django.db.models.fields.IntegerField')()),
+            ('rounds_tied', self.gf('django.db.models.fields.IntegerField')()),
         ))
         db.send_create_signal(u'core', ['PlayerMatch'])
+
+        # Adding model 'PlayerMatchWeapons'
+        db.create_table(u'core_playermatchweapons', (
+            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('match', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.Match'])),
+            ('match_map', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.MatchMap'])),
+            ('player', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.Player'])),
+            ('weapon', self.gf('django.db.models.fields.CharField')(max_length=64)),
+            ('headshots', self.gf('django.db.models.fields.IntegerField')()),
+            ('hits', self.gf('django.db.models.fields.IntegerField')()),
+            ('damage', self.gf('django.db.models.fields.IntegerField')()),
+            ('kills', self.gf('django.db.models.fields.IntegerField')()),
+            ('deaths', self.gf('django.db.models.fields.IntegerField')()),
+        ))
+        db.send_create_signal(u'core', ['PlayerMatchWeapons'])
 
         # Adding model 'PlayerRound'
         db.create_table(u'core_playerround', (
             (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('round', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.Round'])),
             ('player', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.Player'])),
-            ('ip', self.gf('django.db.models.fields.CharField')(max_length=16)),
             ('first_side', self.gf('django.db.models.fields.IntegerField')()),
             ('current_side', self.gf('django.db.models.fields.IntegerField')()),
             ('kills', self.gf('django.db.models.fields.IntegerField')()),
             ('assists', self.gf('django.db.models.fields.IntegerField')()),
             ('deaths', self.gf('django.db.models.fields.IntegerField')()),
-            ('hsp', self.gf('django.db.models.fields.FloatField')()),
             ('defuses', self.gf('django.db.models.fields.IntegerField')()),
             ('plants', self.gf('django.db.models.fields.IntegerField')()),
             ('tks', self.gf('django.db.models.fields.IntegerField')()),
@@ -180,7 +214,7 @@ class Migration(SchemaMigration):
             ('k3', self.gf('django.db.models.fields.IntegerField')()),
             ('k4', self.gf('django.db.models.fields.IntegerField')()),
             ('k5', self.gf('django.db.models.fields.IntegerField')()),
-            ('adr', self.gf('django.db.models.fields.FloatField')()),
+            ('damage', self.gf('django.db.models.fields.IntegerField')()),
             ('rws', self.gf('django.db.models.fields.FloatField')()),
         ))
         db.send_create_signal(u'core', ['PlayerRound'])
@@ -210,8 +244,28 @@ class Migration(SchemaMigration):
             ('k5', self.gf('django.db.models.fields.IntegerField')()),
             ('adr', self.gf('django.db.models.fields.FloatField')()),
             ('rws', self.gf('django.db.models.fields.FloatField')()),
+            ('rounds_won', self.gf('django.db.models.fields.IntegerField')()),
+            ('rounds_lost', self.gf('django.db.models.fields.IntegerField')()),
+            ('rounds_tied', self.gf('django.db.models.fields.IntegerField')()),
+            ('matches_won', self.gf('django.db.models.fields.IntegerField')()),
+            ('matches_lost', self.gf('django.db.models.fields.IntegerField')()),
+            ('matches_tied', self.gf('django.db.models.fields.IntegerField')()),
         ))
         db.send_create_signal(u'core', ['PlayerSeason'])
+
+        # Adding model 'PlayerSeasonWeapons'
+        db.create_table(u'core_playerseasonweapons', (
+            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('player', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.Player'])),
+            ('season', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['core.Season'])),
+            ('weapon', self.gf('django.db.models.fields.CharField')(max_length=64)),
+            ('headshots', self.gf('django.db.models.fields.IntegerField')()),
+            ('hits', self.gf('django.db.models.fields.IntegerField')()),
+            ('damage', self.gf('django.db.models.fields.IntegerField')()),
+            ('kills', self.gf('django.db.models.fields.IntegerField')()),
+            ('deaths', self.gf('django.db.models.fields.IntegerField')()),
+        ))
+        db.send_create_signal(u'core', ['PlayerSeasonWeapons'])
 
         # Adding model 'Round'
         db.create_table(u'core_round', (
@@ -257,6 +311,9 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal(u'core', ['Server'])
 
+        # Adding unique constraint on 'Server', fields ['ip', 'port']
+        db.create_unique(u'core_server', ['ip', 'port'])
+
         # Adding model 'Team'
         db.create_table(u'core_team', (
             (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
@@ -276,6 +333,12 @@ class Migration(SchemaMigration):
 
 
     def backwards(self, orm):
+        # Removing unique constraint on 'Server', fields ['ip', 'port']
+        db.delete_unique(u'core_server', ['ip', 'port'])
+
+        # Removing unique constraint on 'PlayerIp', fields ['player', 'ip']
+        db.delete_unique(u'core_playerip', ['player_id', 'ip'])
+
         # Deleting model 'Match'
         db.delete_table(u'core_match')
 
@@ -297,17 +360,26 @@ class Migration(SchemaMigration):
         # Deleting model 'PlayerBan'
         db.delete_table(u'core_playerban')
 
+        # Deleting model 'PlayerIp'
+        db.delete_table(u'core_playerip')
+
         # Deleting model 'PlayerKill'
         db.delete_table(u'core_playerkill')
 
         # Deleting model 'PlayerMatch'
         db.delete_table(u'core_playermatch')
 
+        # Deleting model 'PlayerMatchWeapons'
+        db.delete_table(u'core_playermatchweapons')
+
         # Deleting model 'PlayerRound'
         db.delete_table(u'core_playerround')
 
         # Deleting model 'PlayerSeason'
         db.delete_table(u'core_playerseason')
+
+        # Deleting model 'PlayerSeasonWeapons'
+        db.delete_table(u'core_playerseasonweapons')
 
         # Deleting model 'Round'
         db.delete_table(u'core_round')
@@ -369,12 +441,16 @@ class Migration(SchemaMigration):
         u'core.matchmap': {
             'Meta': {'object_name': 'MatchMap'},
             'current_period': ('django.db.models.fields.IntegerField', [], {}),
-            'gotv_demo_file': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
+            'end_time': ('django.db.models.fields.DateTimeField', [], {}),
+            'has_demo': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'map_name': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
             'match': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['core.Match']"}),
             'score_1': ('django.db.models.fields.IntegerField', [], {}),
-            'score_2': ('django.db.models.fields.IntegerField', [], {})
+            'score_2': ('django.db.models.fields.IntegerField', [], {}),
+            'sha1sum': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '40'}),
+            'start_time': ('django.db.models.fields.DateTimeField', [], {}),
+            'zip_url': ('django.db.models.fields.CharField', [], {'max_length': '256'})
         },
         u'core.matchmapscore': {
             'Meta': {'object_name': 'MatchMapScore'},
@@ -404,8 +480,8 @@ class Migration(SchemaMigration):
             'profileurl': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'rating': ('django.db.models.fields.FloatField', [], {'default': '25.0'}),
             'rating_variance': ('django.db.models.fields.FloatField', [], {'default': '8.333'}),
-            'reputation': ('django.db.models.fields.IntegerField', [], {}),
-            'steamid': ('django.db.models.fields.BigIntegerField', [], {}),
+            'reputation': ('django.db.models.fields.IntegerField', [], {'default': '0'}),
+            'steamid': ('django.db.models.fields.BigIntegerField', [], {'unique': 'True'}),
             'user_permissions': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['auth.Permission']", 'symmetrical': 'False', 'blank': 'True'}),
             'username': ('django.db.models.fields.CharField', [], {'max_length': '64'})
         },
@@ -417,6 +493,12 @@ class Migration(SchemaMigration):
             'player': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['core.Player']"}),
             'reason': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'start': ('django.db.models.fields.DateField', [], {})
+        },
+        u'core.playerip': {
+            'Meta': {'unique_together': "(('player', 'ip'),)", 'object_name': 'PlayerIp'},
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'ip': ('django.db.models.fields.CharField', [], {'max_length': '16'}),
+            'player': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['core.Player']"})
         },
         u'core.playerkill': {
             'Meta': {'object_name': 'PlayerKill'},
@@ -446,7 +528,6 @@ class Migration(SchemaMigration):
             'first_side': ('django.db.models.fields.IntegerField', [], {}),
             'hsp': ('django.db.models.fields.FloatField', [], {}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'ip': ('django.db.models.fields.CharField', [], {'max_length': '16'}),
             'k1': ('django.db.models.fields.IntegerField', [], {}),
             'k2': ('django.db.models.fields.IntegerField', [], {}),
             'k3': ('django.db.models.fields.IntegerField', [], {}),
@@ -458,14 +539,29 @@ class Migration(SchemaMigration):
             'nickname': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
             'plants': ('django.db.models.fields.IntegerField', [], {}),
             'player': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['core.Player']"}),
+            'rounds_lost': ('django.db.models.fields.IntegerField', [], {}),
+            'rounds_tied': ('django.db.models.fields.IntegerField', [], {}),
+            'rounds_won': ('django.db.models.fields.IntegerField', [], {}),
             'rws': ('django.db.models.fields.FloatField', [], {}),
             'score': ('django.db.models.fields.IntegerField', [], {}),
             'team': ('django.db.models.fields.IntegerField', [], {'default': '0'}),
             'tks': ('django.db.models.fields.IntegerField', [], {})
         },
+        u'core.playermatchweapons': {
+            'Meta': {'object_name': 'PlayerMatchWeapons'},
+            'damage': ('django.db.models.fields.IntegerField', [], {}),
+            'deaths': ('django.db.models.fields.IntegerField', [], {}),
+            'headshots': ('django.db.models.fields.IntegerField', [], {}),
+            'hits': ('django.db.models.fields.IntegerField', [], {}),
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'kills': ('django.db.models.fields.IntegerField', [], {}),
+            'match': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['core.Match']"}),
+            'match_map': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['core.MatchMap']"}),
+            'player': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['core.Player']"}),
+            'weapon': ('django.db.models.fields.CharField', [], {'max_length': '64'})
+        },
         u'core.playerround': {
             'Meta': {'object_name': 'PlayerRound'},
-            'adr': ('django.db.models.fields.FloatField', [], {}),
             'assists': ('django.db.models.fields.IntegerField', [], {}),
             'clutch_v1': ('django.db.models.fields.IntegerField', [], {}),
             'clutch_v2': ('django.db.models.fields.IntegerField', [], {}),
@@ -473,12 +569,11 @@ class Migration(SchemaMigration):
             'clutch_v4': ('django.db.models.fields.IntegerField', [], {}),
             'clutch_v5': ('django.db.models.fields.IntegerField', [], {}),
             'current_side': ('django.db.models.fields.IntegerField', [], {}),
+            'damage': ('django.db.models.fields.IntegerField', [], {}),
             'deaths': ('django.db.models.fields.IntegerField', [], {}),
             'defuses': ('django.db.models.fields.IntegerField', [], {}),
             'first_side': ('django.db.models.fields.IntegerField', [], {}),
-            'hsp': ('django.db.models.fields.FloatField', [], {}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'ip': ('django.db.models.fields.CharField', [], {'max_length': '16'}),
             'k1': ('django.db.models.fields.IntegerField', [], {}),
             'k2': ('django.db.models.fields.IntegerField', [], {}),
             'k3': ('django.db.models.fields.IntegerField', [], {}),
@@ -510,12 +605,30 @@ class Migration(SchemaMigration):
             'k4': ('django.db.models.fields.IntegerField', [], {}),
             'k5': ('django.db.models.fields.IntegerField', [], {}),
             'kills': ('django.db.models.fields.IntegerField', [], {}),
+            'matches_lost': ('django.db.models.fields.IntegerField', [], {}),
+            'matches_tied': ('django.db.models.fields.IntegerField', [], {}),
+            'matches_won': ('django.db.models.fields.IntegerField', [], {}),
             'plants': ('django.db.models.fields.IntegerField', [], {}),
             'player': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['core.Player']"}),
+            'rounds_lost': ('django.db.models.fields.IntegerField', [], {}),
+            'rounds_tied': ('django.db.models.fields.IntegerField', [], {}),
+            'rounds_won': ('django.db.models.fields.IntegerField', [], {}),
             'rws': ('django.db.models.fields.FloatField', [], {}),
             'score': ('django.db.models.fields.IntegerField', [], {}),
             'season': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['core.Season']"}),
             'tks': ('django.db.models.fields.IntegerField', [], {})
+        },
+        u'core.playerseasonweapons': {
+            'Meta': {'object_name': 'PlayerSeasonWeapons'},
+            'damage': ('django.db.models.fields.IntegerField', [], {}),
+            'deaths': ('django.db.models.fields.IntegerField', [], {}),
+            'headshots': ('django.db.models.fields.IntegerField', [], {}),
+            'hits': ('django.db.models.fields.IntegerField', [], {}),
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'kills': ('django.db.models.fields.IntegerField', [], {}),
+            'player': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['core.Player']"}),
+            'season': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['core.Season']"}),
+            'weapon': ('django.db.models.fields.CharField', [], {'max_length': '64'})
         },
         u'core.round': {
             'Meta': {'object_name': 'Round'},
@@ -546,7 +659,7 @@ class Migration(SchemaMigration):
             'start': ('django.db.models.fields.DateField', [], {})
         },
         u'core.server': {
-            'Meta': {'object_name': 'Server'},
+            'Meta': {'unique_together': "(('ip', 'port'),)", 'object_name': 'Server'},
             'gotv_ip': ('django.db.models.fields.CharField', [], {'max_length': '16', 'blank': 'True'}),
             'gotv_port': ('django.db.models.fields.IntegerField', [], {'default': '27020'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
