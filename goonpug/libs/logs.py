@@ -2,7 +2,7 @@
 # Copyright (c) 2013 Peter Rowlands
 # All rights reserved.
 
-from __future__ import division
+from __future__ import division, absolute_import
 
 import re
 
@@ -10,7 +10,7 @@ import srcds.events.generic as generic_events
 import srcds.events.csgo as csgo_events
 from srcds.objects import BasePlayer
 
-from .models import Match, Round
+from ..apps.core.models import Match, Round
 
 
 class GoonPugPlayer(BasePlayer):
@@ -39,7 +39,7 @@ class GoonPugParser(object):
 
     """GoonPUG log parser class"""
 
-    def __init__(self):
+    def __init__(self, verbose=False):
         self.event_handlers = {
             generic_events.LogFileEvent: self.handle_log_file,
             generic_events.ChangeMapEvent: self.handle_change_map,
@@ -61,6 +61,7 @@ class GoonPugParser(object):
         self.seen_players = {}
         self._compile_regexes()
         self._reset_matches()
+        self.verbose = verbose
 
     def _reset_matches(self):
         self.matches = []
@@ -142,6 +143,8 @@ class GoonPugParser(object):
     def parse_line(self, line):
         """Parse a single log line"""
         line = line.strip()
+        if self.verbose:
+            print line
         for (regex, cls) in self.event_types:
             match = regex.match(line)
             if match:

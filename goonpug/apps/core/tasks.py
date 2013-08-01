@@ -9,7 +9,7 @@ from django.core.exceptions import SuspiciousFileOperation
 from queued_storage.tasks import Transfer
 
 from .models import MatchMap
-from .utils import parse_match_log
+from ..libs.goonpugd import parse_match_log
 
 
 class TransferMatchZip(Transfer):
@@ -32,7 +32,7 @@ class TransferMatchZip(Transfer):
             zf.close()
             if not m.zip_url:
                 # If we haven't uploaded this yet
-                result = super(TransferMatchZipAndParse, self).transfer(
+                result = super(TransferMatchZip, self).transfer(
                     name, local, remote, **kwargs)
                 if result:
                     m.zip_url = remote.url(name)
