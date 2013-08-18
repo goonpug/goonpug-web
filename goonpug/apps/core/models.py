@@ -182,6 +182,9 @@ class Player(AbstractBaseUser, PermissionsMixin):
         game_info = TrueSkillGameInfo()
         return rating.conservative_rating(game_info)
 
+    def get_steamid(self):
+      return SteamId.id64_to_str(self.steamid)
+
 
 class PlayerBan(models.Model):
 

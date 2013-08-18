@@ -10,9 +10,9 @@
         {{ period }} <span class="caret"></span>
       </button>
       <ul class="dropdown-menu">
-        {% for item in periods %}
+        {% for item, uri in periods %}
         {% if item %}
-        <li><a href="#">{{ item }}</a></li>
+        <li><a href="{{ uri }}">{{ item }}</a></li>
         {% else %}
         <li class="divider"></li>
         {% endif %}

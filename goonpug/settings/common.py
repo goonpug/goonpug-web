@@ -194,22 +194,13 @@ DJANGO_APPS = (
 )
 
 THIRD_PARTY_APPS = (
-    # supervisord integration
     'djsupervisor',
-
-    # Database migration helpers:
-    'south',
-
-    # Static file management:
     'compressor',
-
-    # Asynchronous task queue:
     'djcelery',
-
     'rest_framework',
-
-    # Site tree navigation
     'sitetree',
+    'south',
+    'django_tables2',
 )
 
 LOCAL_APPS = (

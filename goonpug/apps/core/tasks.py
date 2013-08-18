@@ -30,6 +30,7 @@ def deserialize_pug_match(match, data):
         # this can be parsed from map_data, but for pugs we only have
         # one map per match so this works too
         match_map.start_time = match.start_time
+        match_map.save()
         for round_data in map_data['rounds']:
             deserialize_round(match, match_map, round_data)
         for steamid, weapon_data in map_data['player_match_weapons'].items():
@@ -53,13 +54,19 @@ def deserialize_round(match, match_map, data):
         round.win_type = Round.WIN_TYPE_DEFUSED
     elif data['bomb_exploded']:
         round.win_type = Round.WIN_TYPE_EXPLODED
+    if data['round_number'] <= 15:
+        period = 1
+    elif data['round_number'] <= 30:
+        period = 2
+    else:
+        period = 3 + ((data['round_number'] - 31) // 3)
     if data['ct_win']:
-        if data['round_number'] % 2:
+        if period % 2:
             round.team_win = Match.TEAM_A
         else:
             round.team_win = Match.TEAM_B
     elif data['t_win']:
-        if data['round_number'] % 2:
+        if period % 2:
             round.team_win = Match.TEAM_B
         else:
             round.team_win = Match.TEAM_A
@@ -67,15 +74,21 @@ def deserialize_round(match, match_map, data):
     round.score_b = data['score_b']
     round.save()
     for steamid, player_round in data['player_rounds'].items():
-        deserialize_player_round(round, steamid, player_round)
+        deserialize_player_round(round, steamid, player_round, period)
     for kill_data in data['kills']:
         deserialize_kill(round, kill_data)
 
 
-def deserialize_player_round(round, steamid, data):
+def deserialize_player_round(round, steamid, data, period):
     player, created = Player.objects.get_or_create_from_steamid(steamid)
     player_round, created = PlayerRound.objects.get_or_create(round=round,
                                                               player=player)
+    if period % 2:
+        player_round.first_side == player_round.current_side
+    elif data['current_side'] == Match.SIDE_CT:
+        player_round.first_side = Match.SIDE_T
+    elif data['current_side'] == Match.SIDE_T:
+        player_round.first_side = Match.SIDE_CT
     player_round.current_side = data['current_side']
     player_round.kills = data['kills']
     player_round.deaths = data['deaths']

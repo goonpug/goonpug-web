@@ -5,10 +5,15 @@
 from __future__ import absolute_import
 
 import pytz
+
 from datetime import date, datetime
+
+from django.db.models import Q, Sum, Avg
 from django.http import Http404
 from django.shortcuts import render
+
 from django_tables2 import RequestConfig
+
 from rest_framework.decorators import api_view
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -47,7 +52,47 @@ def player_stats_pug(request, player_id, year=None, month=None, career=False):
     kwargs = {'player': p}
 
     if career:
-        pass
+        kwargs['period'] = 'Career'
+        agg = PlayerSeason.objects.filter(
+            player=p, season__event='pug-season'
+        ).aggregate(
+            Sum('kills'), Sum('assists'), Sum('deaths'), Avg('hsp'),
+            Sum('defuses'), Sum('plants'), Sum('tks'), Sum('clutch_v1'),
+            Sum('clutch_v2'), Sum('clutch_v3'), Sum('clutch_v4'),
+            Sum('clutch_v5'), Sum('k1'), Sum('k2'), Sum('k3'), Sum('k4'),
+            Sum('k5'), Sum('damage'), Sum('rws'), Sum('rounds_won'),
+            Sum('rounds_lost'), Sum('rounds_tied'), Sum('matches_won'),
+            Sum('matches_lost'), Sum('matches_tied')
+        )
+        player_seasons = [{
+            'kills': agg['kills__sum'],
+            'assists': agg['assists__sum'],
+            'deaths': agg['deaths__sum'],
+            'hsp': agg['hsp__avg'],
+            'defuses': agg['defuses__sum'],
+            'plants': agg['plants__sum'],
+            'tks': agg['tks__sum'],
+            'clutch_v1': agg['clutch_v1__sum'],
+            'clutch_v2': agg['clutch_v2__sum'],
+            'clutch_v3': agg['clutch_v3__sum'],
+            'clutch_v4': agg['clutch_v4__sum'],
+            'clutch_v5': agg['clutch_v5__sum'],
+            'k1': agg['k1__sum'],
+            'k2': agg['k2__sum'],
+            'k3': agg['k3__sum'],
+            'k4': agg['k4__sum'],
+            'k5': agg['k5__sum'],
+            'rounds_won': agg['rounds_won__sum'],
+            'rounds_lost': agg['rounds_lost__sum'],
+            'rounds_tied': agg['rounds_tied__sum'],
+            'matches_won': agg['matches_won__sum'],
+            'matches_lost': agg['matches_won__sum'],
+            'matches_tied': agg['matches_tied__sum'],
+        }]
+        rounds_played = agg['rounds_won__sum'] + \
+            agg['rounds_lost__sum'] + agg['rounds_tied__sum']
+        player_seasons[0]['adr'] = agg['damage__sum'] / rounds_played
+        player_seasons[0]['rws'] = agg['rws__sum'] / rounds_played
     else:
         if year is None:
             today = date.today()
@@ -60,24 +105,33 @@ def player_stats_pug(request, player_id, year=None, month=None, career=False):
         season_name = 'pug-%04d-%02d' % (year, month)
         try:
             s = Season.objects.get(name=season_name)
-            player_season = PlayerSeason.objects.get(
+            player_seasons = PlayerSeason.objects.filter(
                 player=p,
                 season=s,
-            )
+            ).values()
+            kwargs['period'] = s.start.strftime('%B %Y')
+            for player_season in player_seasons:
+                rounds_played = player_season['rounds_won'] + \
+                    player_season['rounds_lost'] + player_season['rounds_tied']
+                player_season['adr'] = player_season['damage'] / rounds_played
+                player_season['rws'] /= rounds_played
         except Season.DoesNotExist:
             raise Http404
 
-    table = PlayerSeasonTable(player_season)
+    table = PlayerSeasonTable(player_seasons)
     RequestConfig(request).configure(table)
 
     kwargs['stats_table'] = table
-    kwargs['period'] = 'July 2012'
+    pug_seasons = Season.objects.filter(event='pug-season').order_by('-start')
     kwargs['periods'] = [
-        'Career',
-        '',
-        'July 2012',
-        'June 2012',
+        ('Career', '/player/%d/stats/pug/career/' % int(player_id)),
+        ('', ''),
     ]
+    for season in pug_seasons:
+        kwargs['periods'].append(
+            (season.start.strftime('%B %Y'),
+             '/player/%d/stats/pug/%d/%d/' %
+             (int(player_id), season.start.year, season.start.month)))
     return render(request, 'player/player_stats_pug.html', kwargs)
 
 

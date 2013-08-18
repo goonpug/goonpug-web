@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 {% load sitetree %}
 
-{% block title %}{{ player.username }}{% endblock %}
+{% block title %}{{ player.fullname }}{% endblock %}
 
 {% block body %}
 
-<h2>Profile for {{ player.username }}</h2>
+<h2>Profile for {{ player.fullname }}</h2>
 <div class="container">
   <div class="row">
     <div class="col-lg-2 col-sm-4">
-      <img src="{{ player.avatarfull }}" alt="{{ player.username }}'s avatar" class="img-rounded" />
+      <img src="{{ player.avatarfull }}" alt="{{ player.fullname }}'s avatar" class="img-rounded" />
     </div>
 
     <div class="col-lg-4 col-sm-8">
@@ -36,7 +36,7 @@
           </tr>
           <tr>
             <th>GP Skill</th>
-            <td>{{ player.rating }}</td>
+            <td>{{ player.get_conservative_rating }}</td>
           </tr>
           <tr>
             <th>Last seen</th>
@@ -44,7 +44,7 @@
           </tr>
           <tr>
             <th>Steam ID</th>
-            <td></td>
+            <td>{{ player.get_steamid }}</td>
           </tr>
         </tbody>
       </table>
