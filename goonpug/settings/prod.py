@@ -65,6 +65,8 @@ BROKER_TRANSPORT = 'amqplib'
 # connections total.
 #
 # See: http://docs.celeryproject.org/en/latest/configuration.html#broker-pool-limit
+# Tough Tiger limit is 6, number of connections is
+# BROKER_POOL_LIMIT * (gunicorn-workers * web dynos + worker dynos)
 BROKER_POOL_LIMIT = 1
 
 # See: http://docs.celeryproject.org/en/latest/configuration.html#broker-connection-max-retries
