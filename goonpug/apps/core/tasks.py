@@ -95,6 +95,7 @@ def deserialize_player_round(round, steamid, data, period):
         player_round.first_side = Match.SIDE_CT
     player_round.current_side = data['current_side']
     player_round.kills = data['kills']
+    player_round.assists = data['assists']
     player_round.deaths = data['deaths']
     player_round.defuses = data['defuses']
     player_round.plants = data['plants']
@@ -161,7 +162,8 @@ def update_match_stats(match):
                 player_match.assists += player_round.assists
                 player_match.deaths += player_round.deaths
                 player_match.defuses += player_round.defuses
-                player_match.plants += player_round.tks
+                player_match.plants += player_round.plants
+                player_match.tks += player_round.tks
                 player_match.clutch_v1 += player_round.clutch_v1
                 player_match.clutch_v2 += player_round.clutch_v2
                 player_match.clutch_v3 += player_round.clutch_v3
@@ -241,7 +243,8 @@ def update_season_stats(match):
             player_season.deaths += player_match.deaths
             player_season.score = player_match.score
             player_season.defuses += player_match.defuses
-            player_season.plants += player_match.tks
+            player_season.plants += player_match.plants
+            player_season.tks += player_match.tks
             player_season.clutch_v1 += player_match.clutch_v1
             player_season.clutch_v2 += player_match.clutch_v2
             player_season.clutch_v3 += player_match.clutch_v3
