@@ -8,6 +8,7 @@ import pytz
 
 from datetime import date, datetime
 
+from django.contrib import messages
 from django.db.models import Sum, Avg
 from django.http import Http404
 from django.shortcuts import render
@@ -37,6 +38,7 @@ def player_stats(request, player_id, season='pug'):
     try:
         return seasons[season](request, player_id)
     except KeyError:
+        messages.error(request, 'No player stats for the requested season')
         raise Http404
 
 
@@ -48,6 +50,7 @@ def player_stats_pug(request, player_id, year=None, month=None, career=False):
     try:
         p = Player.objects.get(pk=player_id)
     except Player.DoesNotExist:
+        messages.error(request, 'No such player')
         raise Http404
     kwargs = {'player': p}
 
@@ -128,6 +131,7 @@ def player_stats_pug(request, player_id, year=None, month=None, career=False):
                 player_season['adr'] = player_season['damage'] / rounds_played
                 player_season['rws'] /= rounds_played
         except Season.DoesNotExist:
+            messages.error('No such season')
             raise Http404
 
     table = PlayerSeasonTable(player_seasons)
@@ -169,6 +173,7 @@ class PlayerDetail(APIView):
         try:
             return Player.objects.get(steamid=steamid)
         except Player.DoesNotExist:
+            messages.error('No such player')
             raise Http404
 
     def get(self, request, steamid, format=None):
