@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
-# Copyright (c) 2013 Peter Rowlands
+# Copyright (c) 2013 Astroman Technologies LLC
 # All rights reserved.
+
+from skills import GaussianRating
+from skills.trueskill import TrueSkillGameInfo
 
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, \
     UserManager
 from django.utils import timezone
+
+from srcds.objects import SteamId
 
 
 class Match(models.Model):
@@ -59,36 +64,50 @@ class Match(models.Model):
         (SIDE_T, 'T'),
     )
 
+    SIDES = {
+        'CT': SIDE_CT,
+        'TERRORIST': SIDE_T
+    }
+
     name = models.CharField(max_length=64, blank=True)
     server = models.ForeignKey('Server')
     season = models.ForeignKey('Season')
-    team_a = models.ForeignKey('Team', related_name='match_team_a')
-    team_b = models.ForeignKey('Team', related_name='match_team_b')
+    team_a = models.ForeignKey('Team', related_name='match_team_a',
+                               blank=True, null=True)
+    team_b = models.ForeignKey('Team', related_name='match_team_b',
+                               blank=True, null=True)
     status = models.IntegerField(choices=STATUS, default=STATUS_PENDING)
     paused = models.BooleanField(default=False)
-    score_a = models.IntegerField()
-    score_b = models.IntegerField()
+    score_a = models.IntegerField(default=0)
+    score_b = models.IntegerField(default=0)
     ruleset = models.IntegerField(choices=RULESET, default=RULESET_ESEA)
     config_ot = models.BooleanField(default=True)
     config_knife_round = models.BooleanField(default=False)
     config_password = models.CharField(max_length=64, blank=True)
     map_mode = models.IntegerField(choices=MAP_MODE, default=MAP_MODE_BO1)
-    current_map = models.IntegerField()
+    current_map = models.IntegerField(default=0)
     start_time = models.DateTimeField()
+
+    class Meta:
+        unique_together = (('server', 'start_time',),)
 
 
 class MatchMap(models.Model):
 
     match = models.ForeignKey('Match')
-    map_name = models.CharField(max_length=64)
-    score_1 = models.IntegerField()
-    score_2 = models.IntegerField()
-    current_period = models.IntegerField()
-    zip_url = models.CharField(max_length=256)
-    sha1sum = models.CharField(max_length=40, unique=True)
+    map_number = models.IntegerField()
+    map_name = models.CharField(max_length=64, default='')
+    score_1 = models.IntegerField(default=0)
+    score_2 = models.IntegerField(default=0)
+    current_period = models.IntegerField(default=0)
+    zip_url = models.CharField(max_length=256, default='')
+    sha1sum = models.CharField(max_length=40, blank=True)
     has_demo = models.BooleanField(default=False)
-    start_time = models.DateTimeField()
-    end_time = models.DateTimeField()
+    start_time = models.DateTimeField(blank=True, null=True)
+    end_time = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        unique_together = (('match', 'map_number',))
 
 
 class MatchMapScore(models.Model):
@@ -109,6 +128,21 @@ class MatchMapScore(models.Model):
     score2_half2 = models.IntegerField()
 
 
+class PlayerManager(UserManager):
+
+    def get_or_create_from_steamid(self, steamid):
+        try:
+            steamid = int(steamid)
+        except ValueError:
+            steamid = SteamId(steamid).id64()
+        try:
+            player = self.get(username=unicode(steamid))
+            return (player, False)
+        except Player.DoesNotExist:
+            player = self.create(username=unicode(steamid), steamid=steamid)
+            return (player, True)
+
+
 class Player(AbstractBaseUser, PermissionsMixin):
 
     # django auth fields
@@ -117,18 +151,19 @@ class Player(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     date_joined = models.DateTimeField(default=timezone.now)
+    fullname = models.CharField(max_length=128)
 
-    objects = UserManager()
+    objects = PlayerManager()
 
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['steamid']
 
     # steam community fields
     steamid = models.BigIntegerField(unique=True)
-    profileurl = models.CharField(max_length=256)
-    avatar = models.CharField(max_length=256)
-    avatarmedium = models.CharField(max_length=256)
-    avatarfull = models.CharField(max_length=256)
+    profileurl = models.CharField(max_length=256, default='')
+    avatar = models.CharField(max_length=256, default='')
+    avatarmedium = models.CharField(max_length=256, default='')
+    avatarfull = models.CharField(max_length=256, default='')
 
     # goonpug specific fields
     is_banned = models.BooleanField(default=False)
@@ -137,10 +172,15 @@ class Player(AbstractBaseUser, PermissionsMixin):
     rating_variance = models.FloatField(default=8.333)
 
     def get_full_name(self):
-        return self.username
+        return self.fullname
 
     def get_short_name(self):
-        return self.username
+        return self.fullname
+
+    def get_conservative_rating(self):
+        rating = GaussianRating(self.rating, self.rating_variance)
+        game_info = TrueSkillGameInfo()
+        return rating.conservative_rating(game_info)
 
 
 class PlayerBan(models.Model):
@@ -168,12 +208,15 @@ class PlayerKill(models.Model):
     round = models.ForeignKey('Round')
     killer = models.ForeignKey(
         'Player', related_name='playerkill_player_killer')
-    killer_team = models.IntegerField(choices=Match.SIDE)
+    killer_team = models.IntegerField(choices=Match.SIDE, default=0)
     victim = models.ForeignKey(
         'Player', related_name='playerkill_player_victim')
-    victim_team = models.IntegerField(choices=Match.SIDE)
-    weapon = models.CharField(max_length=64)
-    headshot = models.BooleanField()
+    victim_team = models.IntegerField(choices=Match.SIDE, default=0)
+    weapon = models.CharField(max_length=64, blank=True)
+    headshot = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = (('round', 'killer', 'victim',))
 
 
 class PlayerMatch(models.Model):
@@ -182,32 +225,36 @@ class PlayerMatch(models.Model):
     match_map = models.ForeignKey('MatchMap')
     player = models.ForeignKey('Player')
     team = models.IntegerField(choices=Match.TEAM, default=Match.TEAM_OTHER)
-    first_side = models.IntegerField(choices=Match.SIDE)
-    current_side = models.IntegerField(choices=Match.SIDE)
-    nickname = models.CharField(max_length=256)
-    kills = models.IntegerField()
-    assists = models.IntegerField()
-    deaths = models.IntegerField()
-    score = models.IntegerField()
-    hsp = models.FloatField()
-    defuses = models.IntegerField()
-    plants = models.IntegerField()
-    tks = models.IntegerField()
-    clutch_v1 = models.IntegerField()
-    clutch_v2 = models.IntegerField()
-    clutch_v3 = models.IntegerField()
-    clutch_v4 = models.IntegerField()
-    clutch_v5 = models.IntegerField()
-    k1 = models.IntegerField()
-    k2 = models.IntegerField()
-    k3 = models.IntegerField()
-    k4 = models.IntegerField()
-    k5 = models.IntegerField()
-    adr = models.FloatField()
-    rws = models.FloatField()
-    rounds_won = models.IntegerField()
-    rounds_lost = models.IntegerField()
-    rounds_tied = models.IntegerField()
+    first_side = models.IntegerField(choices=Match.SIDE,
+                                     default=Match.TEAM_OTHER)
+    current_side = models.IntegerField(choices=Match.SIDE,
+                                       default=Match.TEAM_OTHER)
+    kills = models.IntegerField(default=0)
+    assists = models.IntegerField(default=0)
+    deaths = models.IntegerField(default=0)
+    score = models.IntegerField(default=0)
+    hsp = models.FloatField(default=0.0)
+    defuses = models.IntegerField(default=0)
+    plants = models.IntegerField(default=0)
+    tks = models.IntegerField(default=0)
+    clutch_v1 = models.IntegerField(default=0)
+    clutch_v2 = models.IntegerField(default=0)
+    clutch_v3 = models.IntegerField(default=0)
+    clutch_v4 = models.IntegerField(default=0)
+    clutch_v5 = models.IntegerField(default=0)
+    k1 = models.IntegerField(default=0)
+    k2 = models.IntegerField(default=0)
+    k3 = models.IntegerField(default=0)
+    k4 = models.IntegerField(default=0)
+    k5 = models.IntegerField(default=0)
+    damage = models.FloatField(default=0.0)
+    rws = models.FloatField(default=0.0)
+    rounds_won = models.IntegerField(default=0)
+    rounds_lost = models.IntegerField(default=0)
+    rounds_tied = models.IntegerField(default=0)
+
+    class Meta:
+        unique_together = (('match_map', 'player'),)
 
 
 class PlayerMatchWeapons(models.Model):
@@ -216,69 +263,78 @@ class PlayerMatchWeapons(models.Model):
     match_map = models.ForeignKey('MatchMap')
     player = models.ForeignKey('Player')
     weapon = models.CharField(max_length=64)
-    headshots = models.IntegerField()
-    hits = models.IntegerField()
-    damage = models.IntegerField()
-    kills = models.IntegerField()
-    deaths = models.IntegerField()
+    headshots = models.IntegerField(default=0)
+    hits = models.IntegerField(default=0)
+    damage = models.IntegerField(default=0)
+    kills = models.IntegerField(default=0)
+    deaths = models.IntegerField(default=0)
+
+    class Meta:
+        unique_together = (('match_map', 'player', 'weapon'))
 
 
 class PlayerRound(models.Model):
 
     round = models.ForeignKey('Round')
     player = models.ForeignKey('Player')
-    first_side = models.IntegerField(choices=Match.SIDE)
-    current_side = models.IntegerField(choices=Match.SIDE)
-    kills = models.IntegerField()
-    assists = models.IntegerField()
-    deaths = models.IntegerField()
-    defuses = models.IntegerField()
-    plants = models.IntegerField()
-    tks = models.IntegerField()
-    clutch_v1 = models.IntegerField()
-    clutch_v2 = models.IntegerField()
-    clutch_v3 = models.IntegerField()
-    clutch_v4 = models.IntegerField()
-    clutch_v5 = models.IntegerField()
-    k1 = models.IntegerField()
-    k2 = models.IntegerField()
-    k3 = models.IntegerField()
-    k4 = models.IntegerField()
-    k5 = models.IntegerField()
-    damage = models.IntegerField()
-    rws = models.FloatField()
+    first_side = models.IntegerField(choices=Match.SIDE, default=0)
+    current_side = models.IntegerField(choices=Match.SIDE, default=0)
+    kills = models.IntegerField(default=0)
+    assists = models.IntegerField(default=0)
+    deaths = models.IntegerField(default=0)
+    defuses = models.IntegerField(default=0)
+    plants = models.IntegerField(default=0)
+    tks = models.IntegerField(default=0)
+    clutch_v1 = models.IntegerField(default=0)
+    clutch_v2 = models.IntegerField(default=0)
+    clutch_v3 = models.IntegerField(default=0)
+    clutch_v4 = models.IntegerField(default=0)
+    clutch_v5 = models.IntegerField(default=0)
+    k1 = models.IntegerField(default=0)
+    k2 = models.IntegerField(default=0)
+    k3 = models.IntegerField(default=0)
+    k4 = models.IntegerField(default=0)
+    k5 = models.IntegerField(default=0)
+    damage = models.IntegerField(default=0)
+    rws = models.FloatField(default=0.0)
+
+    class Meta:
+        unique_together = (('round', 'player',),)
 
 
 class PlayerSeason(models.Model):
 
     player = models.ForeignKey('Player')
     season = models.ForeignKey('Season')
-    kills = models.IntegerField()
-    assists = models.IntegerField()
-    deaths = models.IntegerField()
-    score = models.IntegerField()
-    hsp = models.FloatField('headshot percentage')
-    defuses = models.IntegerField('bomb defusals')
-    plants = models.IntegerField()
-    tks = models.IntegerField()
-    clutch_v1 = models.IntegerField()
-    clutch_v2 = models.IntegerField()
-    clutch_v3 = models.IntegerField()
-    clutch_v4 = models.IntegerField()
-    clutch_v5 = models.IntegerField()
-    k1 = models.IntegerField()
-    k2 = models.IntegerField()
-    k3 = models.IntegerField()
-    k4 = models.IntegerField()
-    k5 = models.IntegerField()
-    adr = models.FloatField()
-    rws = models.FloatField()
-    rounds_won = models.IntegerField()
-    rounds_lost = models.IntegerField()
-    rounds_tied = models.IntegerField()
-    matches_won = models.IntegerField()
-    matches_lost = models.IntegerField()
-    matches_tied = models.IntegerField()
+    kills = models.IntegerField(default=0)
+    assists = models.IntegerField(default=0)
+    deaths = models.IntegerField(default=0)
+    score = models.IntegerField(default=0)
+    hsp = models.FloatField('headshot percentage', default=0.0)
+    defuses = models.IntegerField('bomb defusals', default=0)
+    plants = models.IntegerField(default=0)
+    tks = models.IntegerField(default=0)
+    clutch_v1 = models.IntegerField(default=0)
+    clutch_v2 = models.IntegerField(default=0)
+    clutch_v3 = models.IntegerField(default=0)
+    clutch_v4 = models.IntegerField(default=0)
+    clutch_v5 = models.IntegerField(default=0)
+    k1 = models.IntegerField(default=0)
+    k2 = models.IntegerField(default=0)
+    k3 = models.IntegerField(default=0)
+    k4 = models.IntegerField(default=0)
+    k5 = models.IntegerField(default=0)
+    damage = models.FloatField(default=0)
+    rws = models.FloatField(default=0.0)
+    rounds_won = models.IntegerField(default=0)
+    rounds_lost = models.IntegerField(default=0)
+    rounds_tied = models.IntegerField(default=0)
+    matches_won = models.IntegerField(default=0)
+    matches_lost = models.IntegerField(default=0)
+    matches_tied = models.IntegerField(default=0)
+
+    class Meta:
+        unique_together = (('player', 'season',),)
 
 
 class PlayerSeasonWeapons(models.Model):
@@ -286,11 +342,14 @@ class PlayerSeasonWeapons(models.Model):
     player = models.ForeignKey('Player')
     season = models.ForeignKey('Season')
     weapon = models.CharField(max_length=64)
-    headshots = models.IntegerField()
-    hits = models.IntegerField()
-    damage = models.IntegerField()
-    kills = models.IntegerField()
-    deaths = models.IntegerField()
+    headshots = models.IntegerField(default=0)
+    hits = models.IntegerField(default=0)
+    damage = models.IntegerField(default=0)
+    kills = models.IntegerField(default=0)
+    deaths = models.IntegerField(default=0)
+
+    class Meta:
+        unique_together = (('player', 'season', 'weapon',),)
 
 
 class Round(models.Model):
@@ -308,17 +367,21 @@ class Round(models.Model):
 
     match = models.ForeignKey('Match')
     match_map = models.ForeignKey('MatchMap')
-    round_number = models.IntegerField()
-    bomb_planted = models.BooleanField()
-    bomb_defused = models.BooleanField()
-    bomb_exploded = models.BooleanField()
+    round_number = models.IntegerField(default=0)
+    bomb_planted = models.BooleanField(default=False)
+    bomb_defused = models.BooleanField(default=False)
+    bomb_exploded = models.BooleanField(default=False)
     win_type = models.IntegerField(choices=WIN_TYPE, default=WIN_TYPE_NORMAL)
-    team_win = models.IntegerField(choices=Match.TEAM)
-    ct_win = models.BooleanField()
-    t_win = models.BooleanField()
-    score_a = models.IntegerField()
-    score_b = models.IntegerField()
-    backup_file_name = models.CharField(max_length=256)
+    team_win = models.IntegerField(choices=Match.TEAM,
+                                   default=Match.TEAM_OTHER)
+    ct_win = models.BooleanField(default=False)
+    t_win = models.BooleanField(default=False)
+    score_a = models.IntegerField(default=0)
+    score_b = models.IntegerField(default=0)
+    backup_file_name = models.CharField(max_length=256, blank=True)
+
+    class Meta:
+        unique_together = (('match_map', 'round_number',),)
 
 
 class Season(models.Model):
@@ -334,7 +397,7 @@ class Season(models.Model):
 
 class Server(models.Model):
 
-    name = models.CharField(max_length=128)
+    name = models.CharField(max_length=128, blank=True)
     ip = models.CharField(max_length=16)
     port = models.IntegerField(default=27015)
     gotv_ip = models.CharField(max_length=16, blank=True)

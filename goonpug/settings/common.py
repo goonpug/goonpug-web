@@ -206,6 +206,8 @@ THIRD_PARTY_APPS = (
     # Asynchronous task queue:
     'djcelery',
 
+    'rest_framework',
+
     # Site tree navigation
     'sitetree',
 )
@@ -290,7 +292,7 @@ COMPRESS_JS_FILTERS = [
 
 ########## SOCIAL AUTH CONFIGURATION
 AUTHENTICATION_BACKENDS = (
-    'social_auth.backends.steam.SteamBackend',
+    'apps.core.auth.GoonpugSteamBackend',
     'django.contrib.auth.backends.ModelBackend',
 )
 
@@ -303,7 +305,7 @@ LOGIN_REDIRECT_URL = '/'
 
 SOCIAL_AUTH_PIPELINE = (
     'social_auth.backends.pipeline.social.social_auth_user',
-    'social_auth.backends.pipeline.user.get_username',
+    'apps.core.pipeline.get_username',
     'apps.core.pipeline.create_user',
     'social_auth.backends.pipeline.social.associate_user',
     'social_auth.backends.pipeline.social.load_extra_data',

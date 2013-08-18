@@ -4,7 +4,11 @@
 
 from __future__ import division, absolute_import
 
+import copy
 import re
+import json
+import pytz
+from django.core.serializers.json import DjangoJSONEncoder
 
 import srcds.events.generic as generic_events
 import srcds.events.csgo as csgo_events
@@ -154,39 +158,22 @@ class GoonPugParser(object):
                 return
 
     def _start_match(self, timestamp):
+        central = pytz.timezone('US/Central')
+        timestamp = central.localize(timestamp).astimezone(pytz.utc)
         self._reset_current_match()
         self.current_match['server'] = self.current_server
         self.current_match_map['map_name'] = self.current_map
         self.current_match_map['score_1'] = 0
         self.current_match_map['score_2'] = 0
         self.current_match_map['start_time'] = timestamp
+        self.current_match['start_time'] = timestamp
         self.current_match_map['period'] = 1
 
     def _end_match(self, event):
-        self.current_match['match_maps'].append(self.current_match_map)
-        print self.current_match
-        """
-        for steam_id in self.team_a:
-            player = Player.query.filter_by(steam_id=steam_id).first()
-            db.session.execute(match_players.insert().values(
-                player_id=player.id,
-                match_id=self.match.id,
-                team=CsgoMatch.TEAM_A,
-            ))
-            PlayerOverallStatsSummary._update_stats(player.id)
-        for steam_id in self.team_b:
-            player = Player.query.filter_by(steam_id=steam_id).first()
-            db.session.execute(match_players.insert().values(
-                player_id=player.id,
-                match_id=self.match.id,
-                team=CsgoMatch.TEAM_A,
-            ))
-            PlayerOverallStatsSummary._update_stats(player.id)
-        self.team_a = None
-        self.team_b = None
-        self.match = None
-        self.round = None
-        """
+        match_map = copy.copy(self.current_match_map)
+        self.current_match['match_maps'].append(match_map)
+        f = open('match.json', 'w')
+        print json.dump(self.current_match, f, indent=2, cls=DjangoJSONEncoder)
 
     def _start_round(self):
         self._reset_current_round()
@@ -199,7 +186,8 @@ class GoonPugParser(object):
                 self.new_player_round(Match.SIDE_T)
 
     def _end_round(self, event):
-        self.current_match_map['rounds'].append(self.current_round)
+        round = copy.copy(self.current_round)
+        self.current_match_map['rounds'].append(round)
         rounds_played = self.current_round['round_number']
         if rounds_played == 0:
             self.current_match_map['period'] = 1
@@ -388,9 +376,15 @@ class GoonPugParser(object):
 
     def handle_round_end_team(self, event):
         if event.team == u'CT':
-            self.ct_score = event.score
+            if self.current_match_map['period'] % 2:
+                self.current_match_map['score_1'] = event.score
+            else:
+                self.current_match_map['score_2'] = event.score
         elif event.team == u'TERRORIST':
-            self.t_score = event.score
+            if self.current_match_map['period'] % 2:
+                self.current_match_map['score_2'] = event.score
+            else:
+                self.current_match_map['score_1'] = event.score
 
     def handle_kill(self, event):
         killer_id = event.player.steam_id.id64()
