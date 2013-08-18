@@ -18,6 +18,8 @@ from .models import Match, MatchMap, Player, PlayerKill, \
 
 @task()
 def deserialize_pug_match(match, data):
+    logger = deserialize_pug_match.get_logger()
+    logger.info('Deserializing match %d' % match.pk)
     for i, map_data in enumerate(data['match_maps']):
         match_map, created = MatchMap.objects.get_or_create(
             match=match,
@@ -36,7 +38,9 @@ def deserialize_pug_match(match, data):
         for steamid, weapon_data in map_data['player_match_weapons'].items():
             deserialize_weapons(match, match_map, steamid, weapon_data)
     update_match_stats.delay(match)
+    logger.info('Done: Match %d status = STATUS_COMPLETE' % match.pk)
     match.status = Match.STATUS_COMPLETE
+    match.save()
 
 
 def deserialize_round(match, match_map, data):
