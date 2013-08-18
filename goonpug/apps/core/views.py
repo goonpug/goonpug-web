@@ -115,8 +115,6 @@ def player_stats_pug(request, player_id, year=None, month=None, career=False):
             month = today.month
         elif month is None:
             month = 1
-        year = 2013
-        month = 07
         season_name = 'pug-%04d-%02d' % (year, month)
         try:
             s = Season.objects.get(name=season_name)
@@ -173,7 +171,6 @@ class PlayerDetail(APIView):
         try:
             return Player.objects.get(steamid=steamid)
         except Player.DoesNotExist:
-            messages.error(request, 'No such player')
             raise Http404
 
     def get(self, request, steamid, format=None):
