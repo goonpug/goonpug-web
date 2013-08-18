@@ -361,8 +361,6 @@ class GoonPugParser(object):
                 player_round['defuses'] += 1
 
     def handle_team_action(self, event):
-        if not self.current_match['match_maps']:
-            return
         if event.action == u"SFUI_Notice_Bomb_Defused":
             self._sfui_notice(event.team, defused=True,
                               win_type=Round.WIN_TYPE_DEFUSED)
@@ -405,9 +403,23 @@ class GoonPugParser(object):
         killer_id = event.player.steam_id.id64()
         victim_id = event.target.steam_id.id64()
         if killer_id not in self.current_round['player_rounds']:
-            return
+            if event.player.team == 'CT':
+                self.current_round['player_rounds'][killer_id] = \
+                    self.new_player_round(Match.SIDE_CT)
+            elif event.player.team == 'TERRORIST':
+                self.current_round['player_rounds'][killer_id] = \
+                    self.new_player_round(Match.SIDE_T)
+            else:
+                return
         if victim_id not in self.current_round['player_rounds']:
-            return
+            if event.target.team == 'CT':
+                self.current_round['player_rounds'][victim_id] = \
+                    self.new_player_round(Match.SIDE_CT)
+            elif event.target.team == 'TERRORIST':
+                self.current_round['player_rounds'][victim_id] = \
+                    self.new_player_round(Match.SIDE_T)
+            else:
+                return
 
         killer_round = self.current_round['player_rounds'][killer_id]
         victim_round = self.current_round['player_rounds'][victim_id]
@@ -457,9 +469,23 @@ class GoonPugParser(object):
         attacker_id = event.player.steam_id.id64()
         victim_id = event.target.steam_id.id64()
         if attacker_id not in self.current_round['player_rounds']:
-            return
+            if event.player.team == 'CT':
+                self.current_round['player_rounds'][attacker_id] = \
+                    self.new_player_round(Match.SIDE_CT)
+            elif event.player.team == 'TERRORIST':
+                self.current_round['player_rounds'][attacker_id] = \
+                    self.new_player_round(Match.SIDE_T)
+            else:
+                return
         if victim_id not in self.current_round['player_rounds']:
-            return
+            if event.target.team == 'CT':
+                self.current_round['player_rounds'][victim_id] = \
+                    self.new_player_round(Match.SIDE_CT)
+            elif event.target.team == 'TERRORIST':
+                self.current_round['player_rounds'][victim_id] = \
+                    self.new_player_round(Match.SIDE_T)
+            else:
+                return
         attacker_round = self.current_round['player_rounds'][attacker_id]
         victim_round = self.current_round['player_rounds'][victim_id]
 
@@ -494,7 +520,14 @@ class GoonPugParser(object):
     def handle_assist(self, event):
         steam_id = event.player.steam_id.id64()
         if steam_id not in self.current_round['player_rounds']:
-            return
+            if event.player.team == 'CT':
+                self.current_round['player_rounds'][steam_id] = \
+                    self.new_player_round(Match.SIDE_CT)
+            elif event.player.team == 'TERRORIST':
+                self.current_round['player_rounds'][steam_id] = \
+                    self.new_player_round(Match.SIDE_T)
+            else:
+                return
         self.current_round['player_rounds'][steam_id]['assists'] += 1
 
     def handle_switch_team(self, event):

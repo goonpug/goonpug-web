@@ -86,7 +86,7 @@ def player_stats_pug(request, player_id, year=None, month=None, career=False):
             'rounds_lost': agg['rounds_lost__sum'],
             'rounds_tied': agg['rounds_tied__sum'],
             'matches_won': agg['matches_won__sum'],
-            'matches_lost': agg['matches_won__sum'],
+            'matches_lost': agg['matches_lost__sum'],
             'matches_tied': agg['matches_tied__sum'],
         }]
         rounds_played = agg['rounds_won__sum'] + \

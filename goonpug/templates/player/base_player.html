@@ -36,7 +36,7 @@
           </tr>
           <tr>
             <th>GP Skill</th>
-            <td>{{ player.get_conservative_rating }}</td>
+            <td>{{ player.get_conservative_rating|floatformat:3 }}</td>
           </tr>
           <tr>
             <th>Last seen</th>

@@ -274,7 +274,7 @@ def update_season_stats(match):
                 player=player_season.player
             ).aggregate(Sum('headshots'))['headshots__sum']
             hits = PlayerSeasonWeapons.objects.filter(
-                season=match_map,
+                season=season,
                 player=player_season.player
             ).aggregate(Sum('hits'))['hits__sum']
             if headshots is None:
