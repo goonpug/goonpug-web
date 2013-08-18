@@ -131,7 +131,7 @@ def player_stats_pug(request, player_id, year=None, month=None, career=False):
                 player_season['adr'] = player_season['damage'] / rounds_played
                 player_season['rws'] /= rounds_played
         except Season.DoesNotExist:
-            messages.error('No such season')
+            messages.error(request, 'No such season')
             raise Http404
 
     table = PlayerSeasonTable(player_seasons)
@@ -173,7 +173,7 @@ class PlayerDetail(APIView):
         try:
             return Player.objects.get(steamid=steamid)
         except Player.DoesNotExist:
-            messages.error('No such player')
+            messages.error(request, 'No such player')
             raise Http404
 
     def get(self, request, steamid, format=None):
