@@ -67,7 +67,7 @@ BROKER_TRANSPORT = 'amqplib'
 # See: http://docs.celeryproject.org/en/latest/configuration.html#broker-pool-limit
 # Tough Tiger limit is 6, number of connections is
 # BROKER_POOL_LIMIT * (gunicorn-workers * web dynos + worker dynos)
-BROKER_POOL_LIMIT = 1
+BROKER_POOL_LIMIT = 2
 
 # See: http://docs.celeryproject.org/en/latest/configuration.html#broker-connection-max-retries
 BROKER_CONNECTION_MAX_RETRIES = 0
@@ -78,7 +78,7 @@ BROKER_URL = environ.get('RABBITMQ_URL') or environ.get('CLOUDAMQP_URL')
 # See: http://docs.celeryproject.org/en/latest/configuration.html#celery-result-backend
 CELERY_RESULT_BACKEND = 'amqp'
 
-CELERYD_CONCURRENCY = 2
+CELERYD_CONCURRENCY = 4
 ########## END CELERY CONFIGURATION
 
 
