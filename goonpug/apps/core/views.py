@@ -8,7 +8,7 @@ import pytz
 
 from datetime import date, datetime
 
-from django.db.models import Q, Sum, Avg
+from django.db.models import Sum, Avg
 from django.http import Http404
 from django.shortcuts import render
 
@@ -89,10 +89,22 @@ def player_stats_pug(request, player_id, year=None, month=None, career=False):
             'matches_lost': agg['matches_lost__sum'],
             'matches_tied': agg['matches_tied__sum'],
         }]
-        rounds_played = agg['rounds_won__sum'] + \
-            agg['rounds_lost__sum'] + agg['rounds_tied__sum']
-        player_seasons[0]['adr'] = agg['damage__sum'] / rounds_played
-        player_seasons[0]['rws'] = agg['rws__sum'] / rounds_played
+        for key in player_seasons[0]:
+            if player_seasons[0][key] is None:
+                player_seasons[0][key] = 0
+        rounds_played = player_seasons[0]['rounds_won'] + \
+            player_seasons[0]['rounds_lost'] + player_seasons[0]['rounds_tied']
+        if rounds_played == 0:
+            player_seasons[0]['adr'] = 0.0
+            player_seasons[0]['rws'] = 0.0
+        else:
+            if agg['damage__sum'] is None:
+                player_seasons[0]['adr'] = 0.0
+            else:
+                player_seasons[0]['adr'] = agg['damage__sum'] / rounds_played
+            if agg['rws__sum'] is None:
+                player_seasons[0]['rws'] = 0.0
+            player_seasons[0]['rws'] = agg['rws__sum'] / rounds_played
     else:
         if year is None:
             today = date.today()
