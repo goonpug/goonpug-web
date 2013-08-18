@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (c) 2013 Peter Rowlands
+# Copyright (c) 2013 Astroman Technologies LLC
 # All rights reserved.
 
 from __future__ import division, absolute_import
@@ -8,6 +8,8 @@ import copy
 import re
 import json
 import pytz
+import requests
+
 from django.core.serializers.json import DjangoJSONEncoder
 
 import srcds.events.generic as generic_events
@@ -172,8 +174,17 @@ class GoonPugParser(object):
     def _end_match(self, event):
         match_map = copy.copy(self.current_match_map)
         self.current_match['match_maps'].append(match_map)
-        f = open('match.json', 'w')
-        print json.dump(self.current_match, f, indent=2, cls=DjangoJSONEncoder)
+        for match_map in self.current_match['match_maps']:
+            for round in match_map['rounds']:
+                if len(round['player_rounds']) < 9:
+                    print 'skipping invalid match with %d players' % \
+                        len(round['player_rounds'])
+                    return
+        payload = json.dumps(self.current_match, cls=DjangoJSONEncoder)
+        r = requests.post('http://goonpug.herokuapp.com/api/pugmatch/',
+                          data=payload,
+                          headers={'content-type': 'application/json'})
+        print r.text
 
     def _start_round(self):
         self._reset_current_round()
@@ -186,9 +197,9 @@ class GoonPugParser(object):
                 self.new_player_round(Match.SIDE_T)
 
     def _end_round(self, event):
+        rounds_played = self.current_round['round_number']
         round = copy.copy(self.current_round)
         self.current_match_map['rounds'].append(round)
-        rounds_played = self.current_round['round_number']
         if rounds_played == 0:
             self.current_match_map['period'] = 1
         elif rounds_played < 30 and (rounds_played % 15) == 0:
@@ -350,6 +361,8 @@ class GoonPugParser(object):
                 player_round['defuses'] += 1
 
     def handle_team_action(self, event):
+        if not self.current_match['match_maps']:
+            return
         if event.action == u"SFUI_Notice_Bomb_Defused":
             self._sfui_notice(event.team, defused=True,
                               win_type=Round.WIN_TYPE_DEFUSED)
@@ -375,6 +388,8 @@ class GoonPugParser(object):
             self._end_match(event)
 
     def handle_round_end_team(self, event):
+        if 'period' not in self.current_match_map:
+            self.current_match_map['period'] = 0
         if event.team == u'CT':
             if self.current_match_map['period'] % 2:
                 self.current_match_map['score_1'] = event.score
@@ -389,6 +404,10 @@ class GoonPugParser(object):
     def handle_kill(self, event):
         killer_id = event.player.steam_id.id64()
         victim_id = event.target.steam_id.id64()
+        if killer_id not in self.current_round['player_rounds']:
+            return
+        if victim_id not in self.current_round['player_rounds']:
+            return
 
         killer_round = self.current_round['player_rounds'][killer_id]
         victim_round = self.current_round['player_rounds'][victim_id]
@@ -396,6 +415,21 @@ class GoonPugParser(object):
         if event.player.team == event.target.team:
             killer_round['tks'] += 1
         victim_round['deaths'] += 1
+
+        weapon = event.weapon
+        if killer_id not in self.current_match_map['player_match_weapons']:
+            self.current_match_map['player_match_weapons'][killer_id] = {}
+        killer_weapons = \
+            self.current_match_map['player_match_weapons'][killer_id]
+        if weapon not in killer_weapons:
+            killer_weapons[weapon] = self.new_player_weapon()
+
+        if victim_id not in self.current_match_map['player_match_weapons']:
+            self.current_match_map['player_match_weapons'][victim_id] = {}
+        victim_weapons = \
+            self.current_match_map['player_match_weapons'][victim_id]
+        if weapon not in victim_weapons:
+            victim_weapons[weapon] = self.new_player_weapon()
 
         killer_weapons = \
             self.current_match_map['player_match_weapons'][killer_id]
@@ -422,6 +456,10 @@ class GoonPugParser(object):
 
         attacker_id = event.player.steam_id.id64()
         victim_id = event.target.steam_id.id64()
+        if attacker_id not in self.current_round['player_rounds']:
+            return
+        if victim_id not in self.current_round['player_rounds']:
+            return
         attacker_round = self.current_round['player_rounds'][attacker_id]
         victim_round = self.current_round['player_rounds'][victim_id]
 
@@ -455,15 +493,20 @@ class GoonPugParser(object):
 
     def handle_assist(self, event):
         steam_id = event.player.steam_id.id64()
+        if steam_id not in self.current_round['player_rounds']:
+            return
         self.current_round['player_rounds'][steam_id]['assists'] += 1
 
     def handle_switch_team(self, event):
         steam_id = event.player.steam_id.id64()
 
-        if event.orig_team == 'CT':
-            self.cts.remove(steam_id)
-        elif event.orig_team == 'TERRORIST':
-            self.ts.remove(steam_id)
+        try:
+            if event.orig_team == 'CT':
+                self.cts.remove(steam_id)
+            elif event.orig_team == 'TERRORIST':
+                self.ts.remove(steam_id)
+        except KeyError:
+            pass
 
         if event.new_team == 'CT':
             self.cts.add(steam_id)

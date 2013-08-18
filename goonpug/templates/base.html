@@ -10,10 +10,8 @@
     <meta name="author" content="">
 
     <!-- Le styles -->
-    {% compress css %}
     <link href="{{ STATIC_URL }}css/bootstrap.css" rel="stylesheet">
     <link href="{{ STATIC_URL }}css/goonpug.css" rel="stylesheet">
-    {% endcompress %}
 
     <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
     <!--[if lt IE 9]>
@@ -89,14 +87,6 @@
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-    {% compress js %}
     <script src="{{ STATIC_URL }}js/bootstrap.js"></script>
-
-    <script type="text/javascript">
-        $(document).ready(function () {
-            $("[rel=tooltip]").tooltip();
-        });
-    </script>
-    {% endcompress %}
   </body>
 </html>
