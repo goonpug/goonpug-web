@@ -77,6 +77,8 @@ BROKER_URL = environ.get('RABBITMQ_URL') or environ.get('CLOUDAMQP_URL')
 
 # See: http://docs.celeryproject.org/en/latest/configuration.html#celery-result-backend
 CELERY_RESULT_BACKEND = 'amqp'
+
+CELERYD_CONCURRENCY = 2
 ########## END CELERY CONFIGURATION
 
 
