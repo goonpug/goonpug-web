@@ -62,7 +62,7 @@ class Command(BaseCommand):
                 except EOFError:
                     sys.exit()
         else:
-            port = options['port']
+            port = int(options['port'])
             self.stdout.write('goonpugd: Listening for HL log'
                               ' connections on port %d' % port)
             GoonPugLogHandler.verbose = verbose
