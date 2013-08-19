@@ -177,6 +177,9 @@ class Player(AbstractBaseUser, PermissionsMixin):
     def get_short_name(self):
         return self.fullname
 
+    def get_authid(self):
+        return SteamId.id64_to_str(self.steamid)
+
     def get_conservative_rating(self):
         rating = GaussianRating(self.rating, self.rating_variance)
         game_info = TrueSkillGameInfo()

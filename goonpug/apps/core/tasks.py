@@ -89,10 +89,11 @@ def deserialize_player_round(round, steamid, data, period):
                                                               player=player)
     if period % 2:
         player_round.first_side = player_round.current_side
-    elif data['current_side'] == Match.SIDE_CT:
-        player_round.first_side = Match.SIDE_T
-    elif data['current_side'] == Match.SIDE_T:
-        player_round.first_side = Match.SIDE_CT
+    else:
+        if data['current_side'] == Match.SIDE_CT:
+            player_round.first_side = Match.SIDE_T
+        elif data['current_side'] == Match.SIDE_T:
+            player_round.first_side = Match.SIDE_CT
     player_round.current_side = data['current_side']
     player_round.kills = data['kills']
     player_round.assists = data['assists']

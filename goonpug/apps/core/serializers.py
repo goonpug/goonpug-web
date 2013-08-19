@@ -30,11 +30,15 @@ class MatchMapSerializer(serializers.ModelSerializer):
 
 class PlayerSerializer(serializers.ModelSerializer):
 
-    rating = serializers.FloatField(source='get_rating', read_only=True)
+    rating = serializers.FloatField(source='get_conservative_rating',
+                                    read_only=True)
+    auth_id = serializers.CharField(source='get_authid',
+                                    read_only=True)
 
     class Meta:
         model = Player
-        fields = ('id', 'username', 'steamid', 'is_banned', 'profileurl',)
+        fields = ('id', 'fullname', 'steamid', 'is_banned', 'profileurl',
+                  'rating', 'auth_id')
 
 
 class RoundSerializer(serializers.ModelSerializer):
