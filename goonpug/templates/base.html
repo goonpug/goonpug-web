@@ -4,7 +4,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>{% block title %}GoonPUG{% endblock %}</title>
+    <title>{% block title %}GoonPUG{% endblock %} - GoonPUG</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="">
     <meta name="author" content="">
@@ -45,9 +45,7 @@
               {% if user.is_authenticated %}
               {% sitetree_menu from 'user-tree' include 'trunk' template 'tree/menu_bootstrap_right.html' %}
               {% else %}
-              <button type="button" class="btn btn-link navbar-btn pull-right">
-                <a href="{% url 'socialauth_begin' 'steam' %}"><img src="http://cdn.steamcommunity.com/public/images/signinthroughsteam/sits_small.png" alt="Sign in through Steam" /></a>
-              </button>
+                <a href="{% url 'socialauth_begin' 'steam' %}" class="btn navbar-btn pull-right"><img src="http://cdn.steamcommunity.com/public/images/signinthroughsteam/sits_small.png" alt="Sign in through Steam" /></a>
               {% endif %}
               {% sitetree_menu from 'main-nav' include 'trunk' template 'tree/menu_bootstrap.html' %}
             </div><!--/.nav-collapse -->
