@@ -113,8 +113,12 @@ def player_stats_pug(request, player_id, year=None, month=None, career=False):
             today = date.today()
             year = today.year
             month = today.month
-        elif month is None:
+        else:
+            year = int(year)
+        if month is None:
             month = 1
+        else:
+            month = int(month)
         season_name = 'pug-%04d-%02d' % (year, month)
         try:
             s = Season.objects.get(name=season_name)
