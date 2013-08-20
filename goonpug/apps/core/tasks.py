@@ -236,10 +236,21 @@ def update_season_stats(match):
     for match_map in match_maps:
         player_matches = PlayerMatch.objects.filter(match_map=match_map)
         for player_match in player_matches:
+            if player_match.first_side == 0:
+                pr = PlayerRound.objects.filter(
+                    player=player_match.player,
+                    round__match_map=player_match.match_map
+                )[0]
+                if pr.round.get_period() % 2:
+                    player_match.first_side = pr.current_side
+                else:
+                    if pr.current_side == Match.SIDE_T:
+                        player_match.first_side = Match.SIDE_CT
+                    elif pr.current_side == Match.SIDE_CT:
+                        player_match.first_side = Match.SIDE_T
+                player_match.save()
             player_season, created = PlayerSeason.objects.get_or_create(
                 player=player_match.player, season=season)
-            player_season.first_side = player_match.first_side
-            player_match.current_side = player_match.current_side
             player_season.kills += player_match.kills
             player_season.assists += player_match.assists
             player_season.deaths += player_match.deaths
