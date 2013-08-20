@@ -2,6 +2,8 @@
 # Copyright (c) 2013 Astroman Technologies LLC
 # All rights reserved.
 
+from __future__ import division
+
 from skills import GaussianRating
 from skills.trueskill import TrueSkillGameInfo
 
@@ -385,6 +387,17 @@ class Round(models.Model):
     score_a = models.IntegerField(default=0)
     score_b = models.IntegerField(default=0)
     backup_file_name = models.CharField(max_length=256, blank=True)
+
+    def get_period(self):
+        if self.round_number <= 0:
+            return 0
+        elif self.round_number <= 15:
+            return 1
+        elif self.round_number <= 30:
+            return 2
+        else:
+            ot_round = self.round_number - 30
+            return 3 + ((ot_round - 1) // 3)
 
     class Meta:
         unique_together = (('match_map', 'round_number',),)
