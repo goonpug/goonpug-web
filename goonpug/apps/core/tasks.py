@@ -294,6 +294,8 @@ def update_season_stats(match):
 
 @task
 def update_rating(match_map):
+    logger = update_rating.get_logger()
+    logger.info('Updating ratings for match_map %d' % match_map.pk)
     # Trueskill by default works well enough with dropped players, but doesn't
     # have any way to handle subs. For goonpug we just use up to 5 players
     # sorted by RWS. The assumption here is that these 5 players most likely
@@ -307,6 +309,12 @@ def update_rating(match_map):
     ts = PlayerMatch.objects.filter(
         match_map=match_map, first_side=Match.SIDE_T
     ).order_by('-rws').values_list('player', flat=True)[0:4]
+    if len(cts) == 0:
+        logger.warning('Got empty CT team for match_map %d' % match_map.pk)
+        return
+    if len(ts) == 0:
+        logger.warning('Got empty T team for match_map %d' % match_map.pk)
+        return
     ct_team = {}
     for player_id in cts:
         player = Player.objects.get(pk=player_id)
@@ -329,16 +337,12 @@ def update_rating(match_map):
     game_info = TrueSkillGameInfo()
     new_ratings = calc.new_ratings(teams, game_info)
     for player_id in cts:
-        if player_id <= 0:
-            continue
         player = Player.objects.get(pk=player_id)
         rating = new_ratings.rating_by_id(player_id)
         player.rating = rating.mean
         player.rating_variance = rating.stdev
         player.save()
     for player_id in ts:
-        if player_id <= 0:
-            continue
         rating = new_ratings.rating_by_id(player_id)
         player.rating = rating.mean
         player.rating_variance = rating.stdev
