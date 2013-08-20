@@ -148,7 +148,7 @@ class PlayerManager(UserManager):
 class Player(AbstractBaseUser, PermissionsMixin):
 
     # django auth fields
-    username = models.CharField(max_length=64)
+    username = models.CharField(max_length=64, unique=True)
     email = models.EmailField(blank=True)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)

@@ -282,6 +282,8 @@ COMPRESS_JS_FILTERS = [
 
 
 ########## SOCIAL AUTH CONFIGURATION
+AUTH_USER_MODEL = 'core.Player'
+
 AUTHENTICATION_BACKENDS = (
     'apps.core.auth.GoonpugSteamBackend',
     'django.contrib.auth.backends.ModelBackend',
