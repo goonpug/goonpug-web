@@ -2,6 +2,8 @@
 
 from apps.core.models import *
 
+pms = PlayerMatch.objects.filter(first_side=0)
+
 for pm in pms:
     pr = PlayerRound.objects.filter(player=pm.player, round__match_map=pm.match_map)[0]
     if pr.round.get_period() % 2:
