@@ -185,7 +185,11 @@ class Player(AbstractBaseUser, PermissionsMixin):
     def get_conservative_rating(self):
         rating = GaussianRating(self.rating, self.rating_variance)
         game_info = TrueSkillGameInfo()
-        return rating.conservative_rating(game_info)
+        conservative = rating.conservative_rating(game_info)
+        if conservative <= 0.001:
+            return 0.0
+        else:
+            return conservative
 
     def get_steamid(self):
         return SteamId.id64_to_str(self.steamid)
