@@ -186,7 +186,7 @@ class Player(AbstractBaseUser, PermissionsMixin):
         return rating.conservative_rating(game_info)
 
     def get_steamid(self):
-      return SteamId.id64_to_str(self.steamid)
+        return SteamId.id64_to_str(self.steamid)
 
 
 class PlayerBan(models.Model):
@@ -232,9 +232,9 @@ class PlayerMatch(models.Model):
     player = models.ForeignKey('Player')
     team = models.IntegerField(choices=Match.TEAM, default=Match.TEAM_OTHER)
     first_side = models.IntegerField(choices=Match.SIDE,
-                                     default=Match.TEAM_OTHER)
+                                     default=Match.SIDE_OTHER)
     current_side = models.IntegerField(choices=Match.SIDE,
-                                       default=Match.TEAM_OTHER)
+                                       default=Match.SIDE_OTHER)
     kills = models.IntegerField(default=0)
     assists = models.IntegerField(default=0)
     deaths = models.IntegerField(default=0)
