@@ -316,7 +316,7 @@ def update_rating(match_map):
         if partial_play < 0.0001:
             partial_play = 0.0001
         if partial_play > 1.0:
-            logger.error('Got partial play percentage > 1 for match_map' %
+            logger.error('Got partial play percentage > 1 for match_map %d' %
                          match_map.pk)
             partial_play = 1.0
         player = skills.Player(player_id=pm.player.pk,
