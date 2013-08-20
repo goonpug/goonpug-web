@@ -294,42 +294,63 @@ def update_season_stats(match):
 
 @task
 def update_rating(match_map):
-    rounds = Round.objects.filter(match_map=match_map)
-    for round in rounds:
-        cts = PlayerRound.objects.filter(
-            round=round, current_side=Match.SIDE_CT
-        ).values_list('player', flat=True)
-        ts = PlayerRound.objects.filter(
-            round=round, current_side=Match.SIDE_T
-        ).values_list('player', flat=True)
-        ct_team = {}
-        for player_id in cts:
-            player = Player.objects.get(pk=player_id)
-            ct_team[player_id] = skills.GaussianRating(player.rating,
-                                                       player.rating_variance)
-        t_team = {}
-        for player_id in ts:
-            player = Player.objects.get(pk=player_id)
-            t_team[player_id] = skills.GaussianRating(player.rating,
-                                                      player.rating_variance)
-        if round.ct_win:
-            rank = [1, 2]
-        elif round.t_win:
-            rank = [2, 1]
-        else:
-            rank = [1, 1]
-        teams = skills.Match([ct_team, t_team], rank=rank)
-        calc = TwoTeamTrueSkillCalculator()
-        game_info = TrueSkillGameInfo()
-        new_ratings = calc.new_ratings(teams, game_info)
-        for player_id in cts:
-            player = Player.objects.get(pk=player_id)
-            rating = new_ratings.rating_by_id(player_id)
-            player.rating = rating.mean
-            player.rating_variance = rating.stdev
-            player.save()
-        for player_id in ts:
-            rating = new_ratings.rating_by_id(player_id)
-            player.rating = rating.mean
-            player.rating_variance = rating.stdev
-            player.save()
+    cts = PlayerMatch.objects.filter(
+        match_map=match_map, first_side=Match.SIDE_CT
+    ).values_list('player', flat=True)
+    ts = PlayerMatch.objects.filter(
+        match_map=match_map, first_side=Match.SIDE_T
+    ).values_list('player', flat=True)
+    ct_team = {}
+    for player_id in cts:
+        player = Player.objects.get(pk=player_id)
+        ct_team[player_id] = skills.GaussianRating(player.rating,
+                                                   player.rating_variance)
+    t_team = {}
+    for player_id in ts:
+        player = Player.objects.get(pk=player_id)
+        t_team[player_id] = skills.GaussianRating(player.rating,
+                                                  player.rating_variance)
+    if match_map.score_1 > match_map.score_2:
+        rank = [1, 2]
+    elif match_map.score_1 < match_map.score_2:
+        rank = [2, 1]
+    else:
+        rank = [1, 1]
+
+    # Account for subs
+    #
+    # Trueskill by default works well enough with dropped players, but in order
+    # to account for subs we add an unknown "extra" player to the team with
+    # less players for goonpug. This isn't perfect but we have to account for
+    # unbalanced skill totals somehow.
+    #
+    # See http://research.microsoft.com/en-us/projects/trueskill/faq.aspx for
+    # info on what MSFT thinks about drops
+    #
+    # For drops with no subs we do nothing special
+    if len(ct_team) > len(t_team) and len(ct_team) > 5:
+        for i in range(len(ct_team) - len(t_team)):
+            t_team[0 - i] = skills.GaussianRating(25.0, 8.333)
+    if len(t_team) > len(ct_team) and len(t_team) > 5:
+        for i in range(len(t_team) - len(ct_team)):
+            ct_team[0 - i] = skills.GaussianRating(25.0, 8.333)
+
+    teams = skills.Match([ct_team, t_team], rank=rank)
+    calc = TwoTeamTrueSkillCalculator()
+    game_info = TrueSkillGameInfo()
+    new_ratings = calc.new_ratings(teams, game_info)
+    for player_id in cts:
+        if player_id <= 0:
+            continue
+        player = Player.objects.get(pk=player_id)
+        rating = new_ratings.rating_by_id(player_id)
+        player.rating = rating.mean
+        player.rating_variance = rating.stdev
+        player.save()
+    for player_id in ts:
+        if player_id <= 0:
+            continue
+        rating = new_ratings.rating_by_id(player_id)
+        player.rating = rating.mean
+        player.rating_variance = rating.stdev
+        player.save()
