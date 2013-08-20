@@ -294,12 +294,19 @@ def update_season_stats(match):
 
 @task
 def update_rating(match_map):
+    # Trueskill by default works well enough with dropped players, but doesn't
+    # have any way to handle subs. For goonpug we just use up to 5 players
+    # sorted by RWS. The assumption here is that these 5 players most likely
+    # contributed the most to whether their team won or lost.
+    #
+    # See http://research.microsoft.com/en-us/projects/trueskill/faq.aspx for
+    # info on what MSFT thinks about drops
     cts = PlayerMatch.objects.filter(
         match_map=match_map, first_side=Match.SIDE_CT
-    ).values_list('player', flat=True)
+    ).order_by('-rws').values_list('player', flat=True)[0:4]
     ts = PlayerMatch.objects.filter(
         match_map=match_map, first_side=Match.SIDE_T
-    ).values_list('player', flat=True)
+    ).order_by('-rws').values_list('player', flat=True)[0:4]
     ct_team = {}
     for player_id in cts:
         player = Player.objects.get(pk=player_id)
@@ -316,24 +323,6 @@ def update_rating(match_map):
         rank = [2, 1]
     else:
         rank = [1, 1]
-
-    # Account for subs
-    #
-    # Trueskill by default works well enough with dropped players, but in order
-    # to account for subs we add an unknown "extra" player to the team with
-    # less players for goonpug. This isn't perfect but we have to account for
-    # unbalanced skill totals somehow.
-    #
-    # See http://research.microsoft.com/en-us/projects/trueskill/faq.aspx for
-    # info on what MSFT thinks about drops
-    #
-    # For drops with no subs we do nothing special
-    if len(ct_team) > len(t_team) and len(ct_team) > 5:
-        for i in range(len(ct_team) - len(t_team)):
-            t_team[0 - i] = skills.GaussianRating(25.0, 8.333)
-    if len(t_team) > len(ct_team) and len(t_team) > 5:
-        for i in range(len(t_team) - len(ct_team)):
-            ct_team[0 - i] = skills.GaussianRating(25.0, 8.333)
 
     teams = skills.Match([ct_team, t_team], rank=rank)
     calc = TwoTeamTrueSkillCalculator()
