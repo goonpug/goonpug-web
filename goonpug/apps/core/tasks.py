@@ -374,18 +374,18 @@ def update_rating(match_map):
 @task
 def update_steam_details(player):
     url = 'http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/'
-    payload = {'key': settings.STEAM_API_KEY, 'steamids': p.username}
+    payload = {'key': settings.STEAM_API_KEY, 'steamids': player.username}
     r = requests.get(url, params=payload)
     try:
         data = r.json()
-        for p in data['response']['players']:
-            player = Player.objects.get(username=p['steamid'])
-            player.fullname = p['personaname']
-            player.profileurl = p['profileurl']
-            player.avatar = p['avatar']
-            player.avatarmedium = p['avatarmedium']
-            player.avatarfull = p['avatarfull']
-            player.save()
+        for details in data['response']['players']:
+            p = Player.objects.get(username=details['steamid'])
+            p.fullname = details['personaname']
+            p.profileurl = details['profileurl']
+            p.avatar = details['avatar']
+            p.avatarmedium = details['avatarmedium']
+            p.avatarfull = details['avatarfull']
+            p.save()
     except ValueError:
         pass
 
