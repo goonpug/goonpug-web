@@ -11,6 +11,7 @@ import pytz
 import requests
 
 from django.core.serializers.json import DjangoJSONEncoder
+from django.conf import settings
 
 import srcds.events.generic as generic_events
 import srcds.events.csgo as csgo_events
@@ -181,7 +182,7 @@ class GoonPugParser(object):
                         len(round['player_rounds'])
                     return
         payload = json.dumps(self.current_match, cls=DjangoJSONEncoder)
-        r = requests.post('http://goonpug.herokuapp.com/api/pugmatch/',
+        r = requests.post('%s/pugmatch/' % settings.GOONPUG_API_URL,
                           data=payload,
                           headers={'content-type': 'application/json'})
         print r.text

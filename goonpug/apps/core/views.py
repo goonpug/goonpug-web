@@ -2,8 +2,9 @@
 # Copyright (c) 2013 Astroman Technologies LLC
 # All rights reserved.
 
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
+import copy
 import pytz
 
 from datetime import date, datetime
@@ -22,7 +23,7 @@ from rest_framework import mixins, generics
 from srcds.objects import SteamId
 
 from .models import Match, Player, PlayerSeason, Season, Server
-from .tables import PlayerSeasonTable
+from .tables import PlayerSeasonTable, PlayerSeasonLeaderboard
 from .serializers import MatchSerializer, PlayerSerializer
 from .tasks import deserialize_pug_match
 
@@ -108,6 +109,11 @@ def player_stats_pug(request, player_id, year=None, month=None, career=False):
             if agg['rws__sum'] is None:
                 player_seasons[0]['rws'] = 0.0
             player_seasons[0]['rws'] = agg['rws__sum'] / rounds_played
+        if player_seasons[0]['deaths'] == 0:
+            player_seasons[0]['kdr'] = 0.0
+        else:
+            player_seasons[0]['kdr'] = player_seasons[0]['kills'] / \
+                player_seasons[0]['deaths']
     else:
         if year is None:
             today = date.today()
@@ -123,8 +129,8 @@ def player_stats_pug(request, player_id, year=None, month=None, career=False):
         try:
             s = Season.objects.get(name=season_name)
             player_seasons = PlayerSeason.objects.filter(
-                player=p,
                 season=s,
+                player=p,
             ).values()
             kwargs['period'] = s.start.strftime('%B %Y')
             for player_season in player_seasons:
@@ -132,6 +138,11 @@ def player_stats_pug(request, player_id, year=None, month=None, career=False):
                     player_season['rounds_lost'] + player_season['rounds_tied']
                 player_season['adr'] = player_season['damage'] / rounds_played
                 player_season['rws'] /= rounds_played
+                if player_season['deaths'] == 0:
+                    player_season['kdr'] = 0.0
+                else:
+                    player_season['kdr'] = player_seasons['kills'] / \
+                        player_season['deaths']
         except Season.DoesNotExist:
             messages.error(request, 'No such season')
             raise Http404
@@ -151,6 +162,89 @@ def player_stats_pug(request, player_id, year=None, month=None, career=False):
              '/player/%d/stats/pug/%d/%d/' %
              (int(player_id), season.start.year, season.start.month)))
     return render(request, 'player/player_stats_pug.html', kwargs)
+
+
+def stats_pug_career(request):
+    return stats_pug(request, career=True)
+
+
+def stats_pug(request, year=None, month=None, career=False):
+    kwargs = {}
+    player_seasons = None
+    try:
+        if career:
+            kwargs['period'] = 'Career'
+            player_seasons = PlayerSeason.objects.filter(
+                season__event='pug-season'
+            ).values('player_id').annotate(
+                kills=Sum('kills'), assists=Sum('assists'),
+                deaths=Sum('deaths'), hsp=Avg('hsp'),
+                defuses=Sum('defuses'), plants=Sum('plants'), tks=Sum('tks'),
+                clutch_v1=Sum('clutch_v1'), clutch_v2=Sum('clutch_v2'),
+                clutch_v3=Sum('clutch_v3'), clutch_v4=Sum('clutch_v4'),
+                clutch_v5=Sum('clutch_v5'),
+                k1=Sum('k1'), k2=Sum('k2'), k3=Sum('k3'),
+                k4=Sum('k4'), k5=Sum('k5'),
+                damage=Sum('damage'), rws=Sum('rws'),
+                rounds_won=Sum('rounds_won'), rounds_lost=Sum('rounds_lost'),
+                rounds_tied=Sum('rounds_tied'),
+                matches_won=Sum('matches_won'),
+                matches_lost=Sum('matches_lost'),
+                matches_tied=Sum('matches_tied')
+            )
+        else:
+            if year is None:
+                today = date.today()
+                year = today.year
+                month = today.month
+            else:
+                year = int(year)
+            if month is None:
+                month = 1
+            else:
+                month = int(month)
+            season_name = 'pug-%04d-%02d' % (year, month)
+            s = Season.objects.get(name=season_name)
+            player_seasons = PlayerSeason.objects.filter(
+                season=s,
+            ).values()
+            kwargs['period'] = s.start.strftime('%b %y')
+    except Season.DoesNotExist:
+        messages.error(request, 'No such season')
+        raise Http404
+
+    rows = []
+    for player_season in player_seasons:
+        row = copy.copy(player_season)
+        rounds_played = player_season['rounds_won'] + \
+            player_season['rounds_lost'] + player_season['rounds_tied']
+        if player_season['deaths'] == 0:
+            row['kdr'] = 0.0
+        else:
+            row['kdr'] = player_season['kills'] / \
+                player_season['deaths']
+        row['adr'] = row['damage'] / rounds_played
+        row['rws'] /= rounds_played
+        player = Player.objects.get(pk=player_season['player_id'])
+        row['player'] = player.fullname
+        row['rating'] = player.get_conservative_rating()
+        rows.append(row)
+
+    table = PlayerSeasonLeaderboard(rows)
+    RequestConfig(request, paginate={'per_page': 25}).configure(table)
+
+    kwargs['stats_table'] = table
+    pug_seasons = Season.objects.filter(event='pug-season').order_by('-start')
+    kwargs['periods'] = [
+        ('Career', '/stats/pug/career/'),
+        ('', ''),
+    ]
+    for season in pug_seasons:
+        kwargs['periods'].append(
+            (season.start.strftime('%B %Y'),
+             '/stats/pug/%d/%d/' %
+             (season.start.year, season.start.month)))
+    return render(request, 'stats/stats_pug.html', kwargs)
 
 
 class PlayerList(mixins.ListModelMixin, generics.GenericAPIView):

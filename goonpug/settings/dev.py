@@ -72,3 +72,5 @@ MIDDLEWARE_CLASSES += (
     'debug_toolbar.middleware.DebugToolbarMiddleware',
 )
 ########## END TOOLBAR CONFIGURATION
+
+GOONPUG_API_URL = 'http://localhost:8000/api'

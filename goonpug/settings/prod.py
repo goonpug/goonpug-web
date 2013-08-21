@@ -150,3 +150,5 @@ SECRET_KEY = environ.get('SECRET_KEY', SECRET_KEY)
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
 ALLOWED_HOSTS = ['.herokuapp.com', '.goonpug.com', '.goonpug.com.']
 ########## END ALLOWED HOST CONFIGURATION
+
+GOONPUG_API_URL = 'http://goonpug.com/api'
