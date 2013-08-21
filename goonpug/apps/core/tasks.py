@@ -372,14 +372,10 @@ def update_rating(match_map):
 
 
 @task
-def update_steam_details(players):
-    steamids = []
-    for p in players:
-        steamids.append(p.username)
+def update_steam_details(player):
     url = 'http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/'
-    payload = {'key': settings.STEAM_API_KEY, 'steamids': ','.join(steamids)}
+    payload = {'key': settings.STEAM_API_KEY, 'steamids': p.username}
     r = requests.get(url, params=payload)
-    r.raise_for_status()
     try:
         data = r.json()
         for p in data['response']['players']:
@@ -395,10 +391,6 @@ def update_steam_details(players):
 
 
 @task
-def update_steam_details_one(player):
-    update_steam_details([player])
-
-
-@task
 def update_steam_details_all():
-    update_steam_details(Player.objects.all())
+    for p in Player.objects.all():
+        update_steam_details.delay(p)
