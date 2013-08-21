@@ -224,14 +224,13 @@ def stats_pug(request, year=None, month=None, career=False):
             row['kdr'] = player_season['kills'] / \
                 player_season['deaths']
         if rounds_played == 0:
-            row['adr'] = 0.0
-            row['rws'] = 0.0
+            continue
         else:
             row['adr'] = row['damage'] / rounds_played
             row['rws'] /= rounds_played
         player = Player.objects.get(pk=player_season['player_id'])
-        row['player'] = '<a href="/player/%d/"><img src="%s" /> %s</a>' % (
-            player.pk, player.avatar, player.fullname)
+        row['player'] = '<a href="/player/%d/">%s</a>' % (
+            player.pk, player.fullname)
         row['rating'] = player.get_conservative_rating()
         rows.append(row)
 
