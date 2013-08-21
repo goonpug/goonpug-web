@@ -223,8 +223,12 @@ def stats_pug(request, year=None, month=None, career=False):
         else:
             row['kdr'] = player_season['kills'] / \
                 player_season['deaths']
-        row['adr'] = row['damage'] / rounds_played
-        row['rws'] /= rounds_played
+        if rounds_played == 0:
+            row['adr'] = row['damage'] / rounds_played
+            row['rws'] /= rounds_played
+        else:
+            row['adr'] = 0.0
+            row['rws'] = 0.0
         player = Player.objects.get(pk=player_season['player_id'])
         row['player'] = player.fullname
         row['rating'] = player.get_conservative_rating()
