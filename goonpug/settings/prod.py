@@ -12,6 +12,8 @@ from S3 import CallingFormat
 
 from common import *
 
+from celery.schedules import crontab
+
 
 ########## EMAIL CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#email-backend
@@ -79,6 +81,13 @@ BROKER_URL = environ.get('RABBITMQ_URL') or environ.get('CLOUDAMQP_URL')
 CELERY_RESULT_BACKEND = 'amqp'
 
 CELERYD_CONCURRENCY = 2
+
+CELERYBEAT_SCHEDULE = {
+    'nightly-steam-details': {
+        'task': 'apps.core.tasks.update_steam_details_all',
+        'schedule': crontab(minute=0, hour=0),
+    }
+}
 ########## END CELERY CONFIGURATION
 
 

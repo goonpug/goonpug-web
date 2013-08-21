@@ -4,11 +4,13 @@
 
 from __future__ import absolute_import, division
 
+import requests
 import skills
 from skills.trueskill import TrueSkillGameInfo
 
 from celery import task
 
+from django.conf import settings
 from django.db.models import Sum
 
 from .models import Match, MatchMap, Player, PlayerKill, \
@@ -367,3 +369,36 @@ def update_rating(match_map):
         player.rating = rating.mean
         player.rating_variance = rating.stdev
         player.save()
+
+
+def update_steam_details(players):
+    steamids = []
+    for p in players:
+        steamids.append(p.username)
+    url = 'http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/'
+    payload = {'key': settings.STEAM_API_KEY, 'steamids': ','.join(steamids)}
+    r = requests.get(url, params=payload)
+    r.raise_for_status()
+    try:
+        data = r.json()
+        for p in data['response']['players']:
+            player = Player.objects.get(username=p['steamid'])
+            p = data['response']['players'][0]
+            player.fullname = p['personaname']
+            player.profileurl = p['profileurl']
+            player.avatar = p['avatar']
+            player.avatarmedium = p['avatarmedium']
+            player.avatarfull = p['avatarfull']
+            player.save()
+    except ValueError:
+        pass
+
+
+@task
+def update_steam_details_one(player):
+    update_steam_details([player])
+
+
+@task
+def update_steam_details_all():
+    update_steam_details(Player.objects.all())
