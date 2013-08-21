@@ -371,6 +371,7 @@ def update_rating(match_map):
         player.save()
 
 
+@task
 def update_steam_details(players):
     steamids = []
     for p in players:
@@ -383,7 +384,6 @@ def update_steam_details(players):
         data = r.json()
         for p in data['response']['players']:
             player = Player.objects.get(username=p['steamid'])
-            p = data['response']['players'][0]
             player.fullname = p['personaname']
             player.profileurl = p['profileurl']
             player.avatar = p['avatar']
