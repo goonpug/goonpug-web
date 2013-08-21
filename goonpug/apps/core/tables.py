@@ -61,7 +61,7 @@ class PlayerSeasonTable(BasePlayerStatsTable):
 class PlayerSeasonLeaderboard(PlayerSeasonTable):
 
     rank = tables.Column(verbose_name='#', orderable=False, empty_values=())
-    player = tables.Column(orderable=False)
+    player = tables.TemplateColumn('{{ value|safe }}', orderable=False)
     rating = tables.Column(verbose_name='GP Skill')
 
     def __init__(self, *args, **kwargs):
