@@ -141,7 +141,7 @@ def player_stats_pug(request, player_id, year=None, month=None, career=False):
                 if player_season['deaths'] == 0:
                     player_season['kdr'] = 0.0
                 else:
-                    player_season['kdr'] = player_seasons['kills'] / \
+                    player_season['kdr'] = player_season['kills'] / \
                         player_season['deaths']
         except Season.DoesNotExist:
             messages.error(request, 'No such season')
