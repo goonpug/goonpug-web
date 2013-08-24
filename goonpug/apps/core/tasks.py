@@ -359,17 +359,17 @@ def update_rating(match_map):
     new_ratings = calc.new_ratings(teams, game_info)
     for pm in cts:
         player = pm.player
-        logger.info('Player %s - Old GP skill: %f' % (
+        logger.warning('Player %s - Old GP skill: %f' % (
             player.fullname, player.get_conservative_rating()))
         rating = new_ratings.rating_by_id(player.pk)
         player.rating = rating.mean
         player.rating_variance = rating.stdev
         player.save()
-        logger.info('Player %s - New GP skill: %f' % (
+        logger.warning('Player %s - New GP skill: %f' % (
             player.fullname, player.get_conservative_rating()))
     for pm in ts:
         player = pm.player
-        logger.info('Player %s - Old GP skill: %f' % (
+        logger.warning('Player %s - Old GP skill: %f' % (
             player.fullname, player.get_conservative_rating()))
         rating = new_ratings.rating_by_id(player.pk)
         player.rating = rating.mean
