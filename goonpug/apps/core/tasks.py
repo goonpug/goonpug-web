@@ -341,6 +341,12 @@ def update_rating(match_map):
     for pm in ts:
         partial_play = (pm.rounds_won + pm.rounds_lost + pm.rounds_tied) / \
             (match_map.score_1 + match_map.score_2)
+        if partial_play < 0.0001:
+            partial_play = 0.0001
+        if partial_play > 1.0:
+            logger.error('Got partial play percentage > 1 for match_map %d' %
+                         match_map.pk)
+            partial_play = 1.0
         player = skills.Player(player_id=pm.player.pk,
                                partial_play_percentage=partial_play)
         rating = skills.GaussianRating(pm.player.rating,
@@ -359,17 +365,17 @@ def update_rating(match_map):
     new_ratings = calc.new_ratings(teams, game_info)
     for pm in cts:
         player = pm.player
-        logger.warning('Player %s - Old GP skill: %f' % (
+        logger.info('Player %s - Old GP skill: %f' % (
             player.fullname, player.get_conservative_rating()))
         rating = new_ratings.rating_by_id(player.pk)
         player.rating = rating.mean
         player.rating_variance = rating.stdev
         player.save()
-        logger.warning('Player %s - New GP skill: %f' % (
+        logger.info('Player %s - New GP skill: %f' % (
             player.fullname, player.get_conservative_rating()))
     for pm in ts:
         player = pm.player
-        logger.warning('Player %s - Old GP skill: %f' % (
+        logger.info('Player %s - Old GP skill: %f' % (
             player.fullname, player.get_conservative_rating()))
         rating = new_ratings.rating_by_id(player.pk)
         player.rating = rating.mean
