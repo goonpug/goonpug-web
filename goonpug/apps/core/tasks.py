@@ -9,6 +9,7 @@ import skills
 from skills.trueskill import TrueSkillGameInfo
 
 from celery import task
+from celery.utils.log import get_task_logger
 
 from django.conf import settings
 from django.db.models import Sum
@@ -19,9 +20,11 @@ from .models import Match, MatchMap, Player, PlayerKill, \
 from .gpskill import GpSkillCalculator
 
 
+logger = get_task_logger(__name__)
+
+
 @task()
 def deserialize_pug_match(match, data):
-    logger = deserialize_pug_match.get_logger()
     logger.info('Deserializing match %d' % match.pk)
     for i, map_data in enumerate(data['match_maps']):
         match_map, created = MatchMap.objects.get_or_create(
@@ -308,7 +311,6 @@ def update_season_stats(match):
 
 @task
 def update_rating(match_map):
-    logger = update_rating.get_logger()
     logger.info('Updating ratings for match_map %d' % match_map.pk)
     cts = PlayerMatch.objects.filter(
         match_map=match_map, first_side=Match.SIDE_CT
