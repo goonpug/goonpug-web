@@ -365,26 +365,17 @@ def update_rating(match_map):
     calc = GpSkillCalculator()
     game_info = TrueSkillGameInfo()
     new_ratings = calc.new_ratings(teams, game_info)
-    for pm in cts:
-        player = pm.player
-        logger.info('Player %s - Old GP skill: %f' % (
-            player.fullname, player.get_conservative_rating()))
-        rating = new_ratings.rating_by_id(player.pk)
-        player.rating = rating.mean
-        player.rating_variance = rating.stdev
-        player.save()
-        logger.info('Player %s - New GP skill: %f' % (
-            player.fullname, player.get_conservative_rating()))
-    for pm in ts:
-        player = pm.player
-        logger.info('Player %s - Old GP skill: %f' % (
-            player.fullname, player.get_conservative_rating()))
-        rating = new_ratings.rating_by_id(player.pk)
-        player.rating = rating.mean
-        player.rating_variance = rating.stdev
-        player.save()
-        logger.info('Player %s - New GP skill: %f' % (
-            player.fullname, player.get_conservative_rating()))
+    for team in [cts, ts]:
+        for pm in team:
+            player = pm.player
+            old_skill = player.get_conservative_rating()
+            rating = new_ratings.rating_by_id(player.pk)
+            player.rating = rating.mean
+            player.rating_variance = rating.stdev
+            player.save()
+            new_skill = player.get_conservative_rating()
+            logger.info('Player %s: %f -> %f (%+f)' % (
+                player.fullname, old_skill, new_skill, new_skill - old_skill))
 
 
 @task
