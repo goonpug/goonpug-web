@@ -57,7 +57,7 @@ def player_stats_pug(request, player_id, year=None, month=None, career=False):
 
     if career:
         kwargs['period'] = 'Career'
-        player_seasons = PlayerSeason.objects.filter(
+        ps = PlayerSeason.objects.filter(
             player=p, season__event='pug-season'
         ).values().aggregate(
             kills=Sum('kills'), assists=Sum('assists'), deaths=Sum('deaths'),
@@ -74,6 +74,7 @@ def player_stats_pug(request, player_id, year=None, month=None, career=False):
             matches_won=Sum('matches_won'), matches_lost=Sum('matches_lost'),
             matches_tied=Sum('matches_tied')
         )
+        player_seasons = [ps]
     else:
         if year is None:
             today = date.today()
