@@ -57,63 +57,23 @@ def player_stats_pug(request, player_id, year=None, month=None, career=False):
 
     if career:
         kwargs['period'] = 'Career'
-        agg = PlayerSeason.objects.filter(
+        player_seasons = PlayerSeason.objects.filter(
             player=p, season__event='pug-season'
         ).aggregate(
-            Sum('kills'), Sum('assists'), Sum('deaths'), Avg('hsp'),
-            Sum('defuses'), Sum('plants'), Sum('tks'), Sum('clutch_v1'),
-            Sum('clutch_v2'), Sum('clutch_v3'), Sum('clutch_v4'),
-            Sum('clutch_v5'), Sum('k1'), Sum('k2'), Sum('k3'), Sum('k4'),
-            Sum('k5'), Sum('damage'), Sum('rws'), Sum('rounds_won'),
-            Sum('rounds_lost'), Sum('rounds_tied'), Sum('matches_won'),
-            Sum('matches_lost'), Sum('matches_tied')
-        )
-        player_seasons = [{
-            'kills': agg['kills__sum'],
-            'assists': agg['assists__sum'],
-            'deaths': agg['deaths__sum'],
-            'hsp': agg['hsp__avg'],
-            'defuses': agg['defuses__sum'],
-            'plants': agg['plants__sum'],
-            'tks': agg['tks__sum'],
-            'clutch_v1': agg['clutch_v1__sum'],
-            'clutch_v2': agg['clutch_v2__sum'],
-            'clutch_v3': agg['clutch_v3__sum'],
-            'clutch_v4': agg['clutch_v4__sum'],
-            'clutch_v5': agg['clutch_v5__sum'],
-            'k1': agg['k1__sum'],
-            'k2': agg['k2__sum'],
-            'k3': agg['k3__sum'],
-            'k4': agg['k4__sum'],
-            'k5': agg['k5__sum'],
-            'rounds_won': agg['rounds_won__sum'],
-            'rounds_lost': agg['rounds_lost__sum'],
-            'rounds_tied': agg['rounds_tied__sum'],
-            'matches_won': agg['matches_won__sum'],
-            'matches_lost': agg['matches_lost__sum'],
-            'matches_tied': agg['matches_tied__sum'],
-        }]
-        for key in player_seasons[0]:
-            if player_seasons[0][key] is None:
-                player_seasons[0][key] = 0
-        rounds_played = player_seasons[0]['rounds_won'] + \
-            player_seasons[0]['rounds_lost'] + player_seasons[0]['rounds_tied']
-        if rounds_played == 0:
-            player_seasons[0]['adr'] = 0.0
-            player_seasons[0]['rws'] = 0.0
-        else:
-            if agg['damage__sum'] is None:
-                player_seasons[0]['adr'] = 0.0
-            else:
-                player_seasons[0]['adr'] = agg['damage__sum'] / rounds_played
-            if agg['rws__sum'] is None:
-                player_seasons[0]['rws'] = 0.0
-            player_seasons[0]['rws'] = agg['rws__sum'] / rounds_played
-        if player_seasons[0]['deaths'] == 0:
-            player_seasons[0]['kdr'] = 0.0
-        else:
-            player_seasons[0]['kdr'] = player_seasons[0]['kills'] / \
-                player_seasons[0]['deaths']
+            kills=Sum('kills'), assists=Sum('assists'), deaths=Sum('deaths'),
+            hsp=Avg('hsp'),
+            defuses=Sum('defuses'), plants=Sum('plants'), tks=Sum('tks'),
+            clutch_v1=Sum('clutch_v1'), clutch_v2=Sum('clutch_v2'),
+            clutch_v3=Sum('clutch_v3'), clutch_v4=Sum('clutch_v4'),
+            clutch_v5=Sum('clutch_v5'),
+            k1=Sum('k1'), k2=Sum('k2'), k3=Sum('k3'), k4=Sum('k4'),
+            k5=Sum('k5'),
+            damage=Sum('damage'), rws=Sum('rws'),
+            rounds_won=Sum('rounds_won'), rounds_lost=Sum('rounds_lost'),
+            rounds_tied=Sum('rounds_tied'),
+            matches_won=Sum('matches_won'), matches_lost=Sum('matches_lost'),
+            matches_tied=Sum('matches_tied')
+        ).values()
     else:
         if year is None:
             today = date.today()
@@ -133,21 +93,31 @@ def player_stats_pug(request, player_id, year=None, month=None, career=False):
                 player=p,
             ).values()
             kwargs['period'] = s.start.strftime('%B %Y')
-            for player_season in player_seasons:
-                rounds_played = player_season['rounds_won'] + \
-                    player_season['rounds_lost'] + player_season['rounds_tied']
-                player_season['adr'] = player_season['damage'] / rounds_played
-                player_season['rws'] /= rounds_played
-                if player_season['deaths'] == 0:
-                    player_season['kdr'] = 0.0
-                else:
-                    player_season['kdr'] = player_season['kills'] / \
-                        player_season['deaths']
         except Season.DoesNotExist:
             messages.error(request, 'No such season')
             raise Http404
 
-    table = PlayerSeasonTable(player_seasons)
+    rows = []
+    for ps in player_seasons:
+        row = copy.copy(ps)
+        for key in row:
+            if row[key] is None:
+                row[key] = 0
+        rounds_played = row['rounds_won'] + row['rounds_lost'] + \
+            row['rounds_tied']
+        if rounds_played == 0:
+            row['adr'] = 0.0
+            row['rws'] = 0.0
+        else:
+            row['adr'] = row['damage'] / rounds_played
+            row['rws'] = row['rws'] / rounds_played
+        if row['deaths'] == 0:
+            row['kdr'] = 0.0
+        else:
+            row['kdr'] = row['kills'] / row['deaths']
+    rows.append(row)
+
+    table = PlayerSeasonTable(rows)
     RequestConfig(request).configure(table)
 
     kwargs['stats_table'] = table
