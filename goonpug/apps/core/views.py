@@ -29,7 +29,7 @@ from .tasks import deserialize_pug_match
 
 
 def player_profile(request, player_id):
-    return player_stats(request, player_id)
+    return player_stats_pug_career(request, player_id)
 
 
 def player_stats(request, player_id, season='pug'):
